@@ -1,8 +1,16 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function Tabs({ tabs, defaultTab, onChange }) {
   const [active, setActive] = useState(defaultTab || tabs[0].key);
   const activeTab = tabs.find((t) => t.key === active) || tabs[0];
+
+  // The default tab is "viewed" on mount too, not just on switching — otherwise
+  // whichever tab is first (leaderboard) never gets a view event for anyone
+  // who never taps another tab, undercounting its real view count.
+  useEffect(() => {
+    if (onChange) onChange(active);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function select(key) {
     setActive(key);
