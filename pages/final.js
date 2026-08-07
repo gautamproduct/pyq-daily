@@ -40,7 +40,7 @@ export default function Final() {
             The <span className="text-gradient">Consistency Race</span>
           </h1>
           <p className="text-gray-400 mt-1.5 text-xs sm:text-sm px-2">
-            Live standings — who's showing up every single day. Winner crowned {revealDate}.
+            Live standings — who's showing up every single day. Top spot revealed {revealDate}.
           </p>
           <div className="mt-4 flex justify-center">
             <a href="/" className="text-sm text-accent hover:underline">
@@ -54,7 +54,7 @@ export default function Final() {
             <button
               key={c.value}
               onClick={() => setKlass(c.value)}
-              className={`px-3 py-1.5 rounded-full text-sm border transition ${
+              className={`px-3.5 py-2.5 rounded-full text-sm border transition ${
                 klass === c.value ? "border-accent bg-accent/20 shadow-glow text-white" : "border-white/10 text-gray-400 hover:border-white/20"
               }`}
             >
@@ -66,7 +66,7 @@ export default function Final() {
             <button
               key={ex.value}
               onClick={() => setExam(ex.value)}
-              className={`px-3 py-1.5 rounded-full text-sm border transition ${
+              className={`px-3.5 py-2.5 rounded-full text-sm border transition ${
                 exam === ex.value ? "border-gold bg-gold/20 shadow-goldglow text-white" : "border-white/10 text-gray-400 hover:border-white/20"
               }`}
             >
@@ -141,7 +141,7 @@ function ChampionSlot({ revealed, champion, revealDate }) {
     return (
       <div className="relative glass rounded-3xl p-6 mb-4 text-center shadow-card overflow-hidden animate-pop border border-gold/30">
         <div className="absolute -top-14 left-1/2 -translate-x-1/2 w-56 h-56 bg-gold/25 blur-3xl rounded-full pointer-events-none -z-10" />
-        <p className="text-xs font-semibold text-gold uppercase tracking-wide mb-1">🏆 Champion</p>
+        <p className="text-xs font-semibold text-gold uppercase tracking-wide mb-1">🏆 #1 Most Consistent</p>
         <h2 className="font-display text-2xl font-extrabold">{champion.name}</h2>
         <p className="text-sm text-gray-400 mt-1">
           {champion.daysPlayed} days · {champion.correct}/{champion.answered} correct
@@ -155,8 +155,8 @@ function ChampionSlot({ revealed, champion, revealDate }) {
     <div className="relative glass rounded-3xl p-6 mb-4 text-center shadow-card overflow-hidden border border-gold/20 border-dashed">
       <div className="absolute -top-14 left-1/2 -translate-x-1/2 w-56 h-56 bg-gold/15 blur-3xl rounded-full pointer-events-none -z-10" />
       <div className="text-4xl mb-2 opacity-60">🏆</div>
-      <p className="font-display text-lg font-bold text-gray-200">Let's see who wins on {revealDate}</p>
-      <p className="text-sm text-gray-500 mt-1">The #1 spot is reserved for whoever stays most consistent till the end.</p>
+      <p className="font-display text-lg font-bold text-gray-200">Let's see who's #1 on {revealDate}</p>
+      <p className="text-sm text-gray-500 mt-1">The top spot is reserved for whoever stays most consistent till the end.</p>
     </div>
   );
 }

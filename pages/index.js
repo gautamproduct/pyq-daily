@@ -261,7 +261,7 @@ function Header({ compact, profile, onProfileClick }) {
         <button
           onClick={onProfileClick}
           aria-label="Edit your profile"
-          className="group absolute right-0 top-0 active:scale-95 transition"
+          className="group absolute right-0 top-0 -m-2.5 p-2.5 active:scale-95 transition"
         >
           <span className="relative flex items-center justify-center w-9 h-9 rounded-full bg-gradient-to-br from-accent to-accent2 text-white font-display font-bold text-sm shadow-glow ring-2 ring-white/15">
             {initial}
@@ -481,7 +481,7 @@ function LeaderboardList({ leaderboard, stats, profile, onShare }) {
         {stats?.playersToday > 0 && <span className="text-xs text-gray-500">{stats.playersToday} played today</span>}
       </div>
       <p className="text-xs text-gray-500 mb-4">
-        Ranked by correct answers today. The overall winner is decided by consistency —{" "}
+        Ranked by correct answers today. The #1 overall spot is decided by consistency —{" "}
         <a href="/final" className="text-gold hover:underline">see the full race →</a>
       </p>
       {leaderboard.length === 0 ? (

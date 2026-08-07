@@ -32,7 +32,7 @@ export default function Hero({ onStart }) {
         3 previous-year JEE/NEET questions, every day. Show up, build a streak, climb the board.
       </p>
       <p className="text-gold text-sm sm:text-base font-semibold mb-7">
-        🏆 Most consistent student crowned on {winnerLabel}.
+        🏆 Most consistent student tops the leaderboard on {winnerLabel}.
       </p>
 
       <div className="flex flex-wrap justify-center gap-2 mb-7">
@@ -61,7 +61,7 @@ function HowItWorks({ winnerLabel }) {
   const steps = [
     { n: "1", t: "Answer 3 daily", d: "One each from your core subjects. Takes 2 minutes." },
     { n: "2", t: "Build your streak", d: "Come back every day. 7 days unlocks the True Fighter badge." },
-    { n: "3", t: "Win on " + winnerLabel, d: "Most consistent tops the leaderboard. No luck, just discipline." },
+    { n: "3", t: "Top the board by " + winnerLabel, d: "Most consistent tops the leaderboard. No luck, just discipline." },
   ];
   return (
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mt-10 text-left">
