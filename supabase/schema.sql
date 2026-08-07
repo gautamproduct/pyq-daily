@@ -89,13 +89,19 @@ create table if not exists streaks (
 );
 
 -- Lightweight analytics events (onboarding, quiz_completed, leaderboard_view, etc).
+-- `variant` is set directly on every row at insert time (api/track.js) —
+-- from the player's stored variant once registered, from the request host
+-- before that (e.g. the very first `page_view`) — so every event is
+-- self-contained for A/B comparisons, no join to players required.
 create table if not exists events (
   id bigint generated always as identity primary key,
   player_id uuid references players(id) on delete set null,
   event_name text not null,
+  variant text check (variant in ('q3', 'q8')),
   metadata jsonb,
   created_at timestamptz not null default now()
 );
+alter table events add column if not exists variant text check (variant in ('q3', 'q8'));
 
 create index if not exists idx_questions_group on questions (exam, class);
 create index if not exists idx_attempts_player on attempts (player_id);

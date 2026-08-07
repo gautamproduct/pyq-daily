@@ -297,8 +297,14 @@ function Results({ challengeClosed, results, leaderboard, profile }) {
   );
 }
 
+const LEADERBOARD_PAGE_SIZE = 20;
+
 function LeaderboardList({ leaderboard, profile }) {
+  const [visibleCount, setVisibleCount] = useState(LEADERBOARD_PAGE_SIZE);
   const myName = profile?.name?.trim().toLowerCase();
+  const visible = leaderboard.slice(0, visibleCount);
+  const hasMore = visibleCount < leaderboard.length;
+
   return (
     <div className="relative glass rounded-3xl p-5 shadow-card overflow-hidden">
       <div className="absolute -top-20 -right-10 w-48 h-48 bg-gold/10 blur-3xl rounded-full pointer-events-none -z-10" />
@@ -313,50 +319,69 @@ function LeaderboardList({ leaderboard, profile }) {
       {leaderboard.length === 0 ? (
         <p className="text-gray-500 text-sm">No entries yet today.</p>
       ) : (
-        <div className="space-y-1">
-          {leaderboard.slice(0, 20).map((r) => {
-            const isMe = r.name?.trim().toLowerCase() === myName;
-            return (
-              <div
-                key={r.player_id}
-                className={`flex items-center justify-between text-sm py-2.5 px-3 rounded-xl transition ${
-                  isMe
-                    ? "bg-accent/15 border border-accent/40"
-                    : r.rank <= 3
-                    ? "bg-gradient-to-r from-gold/10 to-transparent"
-                    : ""
-                }`}
-              >
-                <span className="flex items-center gap-2.5 min-w-0">
-                  <span className={`w-6 shrink-0 text-center font-display ${r.rank <= 3 ? "text-gold font-bold text-base" : "text-gray-500 font-semibold"}`}>
-                    {r.rank === 1 ? "🥇" : r.rank === 2 ? "🥈" : r.rank === 3 ? "🥉" : r.rank}
+        <>
+          <div className="space-y-1">
+            {visible.map((r) => {
+              const isMe = r.name?.trim().toLowerCase() === myName;
+              return (
+                <div
+                  key={r.player_id}
+                  className={`flex items-center justify-between text-sm py-2.5 px-3 rounded-xl transition ${
+                    isMe
+                      ? "bg-accent/15 border border-accent/40"
+                      : r.rank <= 3
+                      ? "bg-gradient-to-r from-gold/10 to-transparent"
+                      : ""
+                  }`}
+                >
+                  <span className="flex items-center gap-2.5 min-w-0">
+                    <span className={`w-6 shrink-0 text-center font-display ${r.rank <= 3 ? "text-gold font-bold text-base" : "text-gray-500 font-semibold"}`}>
+                      {r.rank === 1 ? "🥇" : r.rank === 2 ? "🥈" : r.rank === 3 ? "🥉" : r.rank}
+                    </span>
+                    <span className={`truncate ${isMe ? "text-white font-semibold" : "text-gray-200"}`}>
+                      {r.name}
+                      {isMe && <span className="text-accent text-xs font-normal ml-1.5">(you)</span>}
+                    </span>
                   </span>
-                  <span className={`truncate ${isMe ? "text-white font-semibold" : "text-gray-200"}`}>
-                    {r.name}
-                    {isMe && <span className="text-accent text-xs font-normal ml-1.5">(you)</span>}
+                  <span className={`shrink-0 font-bold tabular-nums ${isMe ? "text-accent" : "text-gray-400"}`}>
+                    {r.correct}/{r.answered}
                   </span>
-                </span>
-                <span className={`shrink-0 font-bold tabular-nums ${isMe ? "text-accent" : "text-gray-400"}`}>
-                  {r.correct}/{r.answered}
-                </span>
-              </div>
-            );
-          })}
-        </div>
+                </div>
+              );
+            })}
+          </div>
+          {hasMore && (
+            <button
+              onClick={() => setVisibleCount((v) => v + LEADERBOARD_PAGE_SIZE)}
+              className="w-full mt-3 text-sm text-gray-400 hover:text-white border border-white/10 hover:border-white/20 transition rounded-xl py-2.5 active:scale-[0.98]"
+            >
+              Show more →
+            </button>
+          )}
+        </>
       )}
     </div>
   );
 }
 
 function SolutionsList({ results, exam }) {
+  const [open, setOpen] = useState(false);
   return (
-    <div className="glass rounded-3xl p-4 sm:p-5 shadow-card">
-      <p className="text-sm font-semibold text-gray-300 mb-3">Solutions</p>
-      <div className="space-y-2">
-        {results.map((r, i) => (
-          <SolutionRow key={r.question_id} r={r} index={i} exam={exam} />
-        ))}
-      </div>
+    <div className="glass rounded-3xl shadow-card overflow-hidden">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center justify-between px-4 sm:px-5 py-4 text-left active:bg-white/5 transition"
+      >
+        <span className="text-sm font-semibold text-gray-300">Solutions</span>
+        <span className={`text-gray-500 text-xs transition-transform ${open ? "rotate-180" : ""}`}>▾</span>
+      </button>
+      {open && (
+        <div className="px-4 sm:px-5 pb-4 sm:pb-5 space-y-2">
+          {results.map((r, i) => (
+            <SolutionRow key={r.question_id} r={r} index={i} exam={exam} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

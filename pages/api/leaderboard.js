@@ -44,6 +44,10 @@ export default async function handler(req, res) {
     names = Object.fromEntries((players || []).map((p) => [p.id, p.name]));
   }
 
+  // Rank against the FULL set first, then cap what's actually sent — at
+  // 1000+ users/day this keeps the payload bounded regardless of how many
+  // people played. The client paginates the capped list 20 at a time.
+  const LEADERBOARD_CAP = 200;
   const rows = playerIds
     .map((id) => ({
       player_id: id,
@@ -53,7 +57,8 @@ export default async function handler(req, res) {
       timeMs: byPlayer[id].timeMs,
     }))
     .sort((a, b) => b.correct - a.correct || a.timeMs - b.timeMs)
-    .map((r, i) => ({ ...r, rank: i + 1 }));
+    .map((r, i) => ({ ...r, rank: i + 1 }))
+    .slice(0, LEADERBOARD_CAP);
 
-  return res.status(200).json({ setDate, leaderboard: rows });
+  return res.status(200).json({ setDate, leaderboard: rows, totalPlayers: playerIds.length });
 }
