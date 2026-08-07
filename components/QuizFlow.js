@@ -41,13 +41,14 @@ export default function QuizFlow({ questions, onAnswer, onAllDone }) {
     <div>
       <StepDots total={questions.length} current={index} />
 
-      <div className="bg-panel border border-white/5 rounded-2xl p-5 sm:p-6 md:p-7 animate-fade-up">
-        <div className="flex items-center justify-between mb-3">
-          <span className="text-xs font-semibold text-accent bg-accent/15 rounded-full px-2.5 py-1">
+      <div className="glass rounded-3xl p-5 sm:p-6 md:p-7 animate-fade-up shadow-card relative overflow-hidden">
+        <div className="absolute -top-24 -left-24 w-56 h-56 bg-accent/15 blur-3xl rounded-full pointer-events-none -z-10" />
+        <div className="relative flex items-center justify-between mb-3">
+          <span className="text-xs font-semibold text-white bg-gradient-to-r from-accent to-accent2 rounded-full px-3 py-1.5 shadow-glow">
             Question {index + 1} of {questions.length}
           </span>
           {q.year && (
-            <span className="text-xs font-semibold text-gold bg-gold/10 rounded-full px-2.5 py-1">{q.year}</span>
+            <span className="text-xs font-semibold text-gold bg-gold/10 border border-gold/20 rounded-full px-2.5 py-1.5">{q.year}</span>
           )}
         </div>
         {q.chapter && (

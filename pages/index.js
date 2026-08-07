@@ -7,9 +7,11 @@ import QuizFlow from "../components/QuizFlow";
 import ScoreReveal from "../components/ScoreReveal";
 import StreakFlame from "../components/StreakFlame";
 import Tabs from "../components/Tabs";
+import ErrorBanner from "../components/ErrorBanner";
 import { burstConfetti } from "../lib/confetti";
 import { CHALLENGE_END_DATE, FINAL_LEADERBOARD_DATE, isChallengeOpen } from "../lib/campaign";
 import { getDeviceId, getSavedProfile, saveProfile, track } from "../lib/device";
+import { safeFetchJson } from "../lib/safe-fetch";
 
 export default function Home() {
   const [stage, setStage] = useState("loading"); // loading | hero | onboarding | countdown | quiz | reveal
@@ -22,6 +24,7 @@ export default function Home() {
   const [challengeClosed, setChallengeClosed] = useState(false);
   const [stats, setStats] = useState(null);
   const [onboardSubmitting, setOnboardSubmitting] = useState(false);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const saved = getSavedProfile();
@@ -39,18 +42,18 @@ export default function Home() {
 
   async function loadStats(p) {
     const qs = p ? `?class=${p.class}&exam=${p.exam}` : "";
-    try {
-      const res = await fetch(`/api/stats${qs}`);
-      setStats(await res.json());
-    } catch {
-      // social proof is a nice-to-have, never block on it
-    }
+    const data = await safeFetchJson(`/api/stats${qs}`);
+    if (!data.error) setStats(data);
   }
 
   async function loadToday(p) {
     const device_id = getDeviceId();
-    const res = await fetch(`/api/today?class=${p.class}&exam=${p.exam}&device_id=${device_id}`);
-    const data = await res.json();
+    const data = await safeFetchJson(`/api/today?class=${p.class}&exam=${p.exam}&device_id=${device_id}`);
+    if (data.error) {
+      setError(data.error);
+      setStage("hero");
+      return;
+    }
 
     if (data.challengeClosed) {
       setChallengeClosed(true);
@@ -74,16 +77,16 @@ export default function Home() {
 
   async function handleOnboard({ name, class: klass, exam }) {
     setOnboardSubmitting(true);
+    setError(null);
     const device_id = getDeviceId();
-    const res = await fetch("/api/register", {
+    const data = await safeFetchJson("/api/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ device_id, name, class: klass, exam }),
     });
-    const data = await res.json();
     setOnboardSubmitting(false);
     if (data.error) {
-      alert(data.error);
+      setError(data.error);
       return;
     }
     const p = { name, class: klass, exam };
@@ -95,7 +98,7 @@ export default function Home() {
 
   async function handleAnswer(question_id, selected_option, time_taken_ms) {
     const device_id = getDeviceId();
-    const res = await fetch("/api/answer", {
+    const data = await safeFetchJson("/api/answer", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -107,9 +110,8 @@ export default function Home() {
         time_taken_ms,
       }),
     });
-    const data = await res.json();
     if (data.error) {
-      alert(data.error);
+      setError(data.error);
       return null;
     }
     return data;
@@ -127,22 +129,22 @@ export default function Home() {
   }
 
   async function loadLeaderboard(p) {
-    const res = await fetch(`/api/leaderboard?class=${p.class}&exam=${p.exam}`);
-    const data = await res.json();
-    setLeaderboard(data.leaderboard || []);
+    const data = await safeFetchJson(`/api/leaderboard?class=${p.class}&exam=${p.exam}`);
+    if (!data.error) setLeaderboard(data.leaderboard || []);
   }
 
   async function loadChapters() {
     const device_id = getDeviceId();
-    const res = await fetch(`/api/chapters?device_id=${device_id}`);
-    const data = await res.json();
-    setChapters(data.chapters || []);
+    const data = await safeFetchJson(`/api/chapters?device_id=${device_id}`);
+    if (!data.error) setChapters(data.chapters || []);
   }
 
   return (
     <div className="min-h-screen px-3 sm:px-4 py-6 sm:py-8 md:py-14">
       <div className="max-w-2xl mx-auto">
         {stage !== "hero" && <Header compact={stage === "quiz"} />}
+
+        <ErrorBanner message={error} onDismiss={() => setError(null)} />
 
         {stage === "loading" && <Loading />}
 
@@ -170,11 +172,13 @@ export default function Home() {
           />
         )}
 
-        <div className="text-center mt-8">
-          <a href="/final" className="text-xs text-gray-500 hover:text-accent">
-            View final leaderboard →
-          </a>
-        </div>
+        {stage !== "hero" && (
+          <div className="text-center mt-8">
+            <a href="/final" className="text-xs text-gray-500 hover:text-gold transition">
+              View final leaderboard →
+            </a>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -184,8 +188,8 @@ function Header({ compact }) {
   const open = isChallengeOpen();
   return (
     <div className={`text-center animate-fade-up ${compact ? "mb-4" : "mb-6 sm:mb-8"}`}>
-      <h1 className={`font-extrabold tracking-tight ${compact ? "text-xl" : "text-2xl sm:text-3xl md:text-4xl"}`}>
-        PYQ <span className="text-gold">Daily</span>
+      <h1 className={`font-display font-extrabold tracking-tight ${compact ? "text-xl" : "text-2xl sm:text-3xl md:text-4xl"}`}>
+        PYQ <span className="text-gradient">Daily</span>
       </h1>
       {!compact && (
         <>
@@ -208,7 +212,12 @@ function Header({ compact }) {
 }
 
 function Loading() {
-  return <div className="text-center text-gray-400 py-20">Loading…</div>;
+  return (
+    <div className="flex flex-col items-center justify-center py-24 gap-3">
+      <div className="w-10 h-10 rounded-full border-2 border-accent/30 border-t-accent animate-spin" />
+      <p className="text-gray-500 text-sm">Loading…</p>
+    </div>
+  );
 }
 
 function shareText(results, streak, profile) {
@@ -235,8 +244,8 @@ function Reveal({ challengeClosed, results, streak, leaderboard, chapters, profi
 
   if (challengeClosed) {
     return (
-      <div className="bg-panel border border-white/5 rounded-2xl p-6 text-center animate-fade-up">
-        <p className="text-lg font-semibold mb-1">The daily challenge has ended.</p>
+      <div className="glass rounded-3xl p-8 text-center animate-fade-up shadow-card">
+        <p className="text-lg font-display font-semibold mb-1">The daily challenge has ended.</p>
         <p className="text-gray-400 text-sm">
           Final leaderboard reveals on <span className="text-gold font-semibold">{FINAL_LEADERBOARD_DATE}</span>.
         </p>
@@ -250,21 +259,24 @@ function Reveal({ challengeClosed, results, streak, leaderboard, chapters, profi
 
   return (
     <div className="space-y-5 sm:space-y-6 animate-fade-up">
-      <div className="bg-panel border border-white/5 rounded-2xl px-5 sm:px-6 pt-2 pb-6">
-        <ScoreReveal score={score} total={results.length} />
+      <div className="relative glass rounded-3xl px-5 sm:px-6 pt-4 pb-6 shadow-card overflow-hidden">
+        <div className="absolute -top-16 left-1/2 -translate-x-1/2 w-64 h-64 bg-accent/25 blur-3xl rounded-full pointer-events-none -z-10" />
+        <div className="relative">
+          <ScoreReveal score={score} total={results.length} />
 
-        {streak?.current_streak > 0 && (
-          <div className="mb-4">
-            <StreakFlame current={streak.current_streak} />
-          </div>
-        )}
+          {streak?.current_streak > 0 && (
+            <div className="mb-4">
+              <StreakFlame current={streak.current_streak} />
+            </div>
+          )}
 
-        <button
-          onClick={handleShare}
-          className="w-full bg-good/15 hover:bg-good/25 text-good border border-good/30 transition rounded-xl py-3 font-semibold text-sm active:scale-[0.98]"
-        >
-          Share your score →
-        </button>
+          <button
+            onClick={handleShare}
+            className="w-full bg-gradient-to-r from-good/20 to-teal/20 hover:from-good/30 hover:to-teal/30 text-good border border-good/30 transition rounded-xl py-3.5 font-semibold text-sm active:scale-[0.98]"
+          >
+            Share your score →
+          </button>
+        </div>
       </div>
 
       <Tabs
@@ -296,7 +308,7 @@ function Reveal({ challengeClosed, results, streak, leaderboard, chapters, profi
 
 function SolutionsList({ results }) {
   return (
-    <div className="bg-panel border border-white/5 rounded-2xl p-5 sm:p-6 space-y-4">
+    <div className="glass rounded-3xl p-5 sm:p-6 space-y-4 shadow-card">
       {results.map((r, i) => (
         <div key={r.question_id} className="border-t border-white/5 pt-4 first:border-0 first:pt-0">
           <p className="text-sm text-gray-400 mb-1">
@@ -317,7 +329,7 @@ function SolutionsList({ results }) {
 
 function LeaderboardList({ leaderboard, stats, profile }) {
   return (
-    <div className="bg-panel border border-white/5 rounded-2xl p-5 sm:p-6">
+    <div className="glass rounded-3xl p-5 sm:p-6 shadow-card">
       <div className="flex items-center justify-between mb-4 flex-wrap gap-1">
         <h2 className="text-sm font-semibold text-gray-300">
           {profile?.class} · {profile?.exam} — today
@@ -327,15 +339,22 @@ function LeaderboardList({ leaderboard, stats, profile }) {
       {leaderboard.length === 0 ? (
         <p className="text-gray-500 text-sm">No entries yet today.</p>
       ) : (
-        <div className="space-y-1.5">
+        <div className="space-y-1">
           {leaderboard.slice(0, 20).map((r) => (
-            <div key={r.player_id} className="flex items-center justify-between text-sm py-1.5">
+            <div
+              key={r.player_id}
+              className={`flex items-center justify-between text-sm py-2 px-2.5 rounded-lg ${
+                r.rank <= 3 ? "bg-gradient-to-r from-gold/10 to-transparent" : ""
+              }`}
+            >
               <span className="flex items-center gap-2 min-w-0">
-                <span className={`w-5 shrink-0 ${r.rank <= 3 ? "text-gold font-bold" : "text-gray-500"}`}>{r.rank}</span>
+                <span className={`w-6 shrink-0 text-center ${r.rank <= 3 ? "text-gold font-bold" : "text-gray-500"}`}>
+                  {r.rank === 1 ? "🥇" : r.rank === 2 ? "🥈" : r.rank === 3 ? "🥉" : r.rank}
+                </span>
                 <span className="truncate">{r.name}</span>
                 {r.streak > 1 && <span className="text-gold text-xs shrink-0">🔥{r.streak}</span>}
               </span>
-              <span className="text-gray-400 shrink-0">{r.correct}/{r.answered}</span>
+              <span className="text-gray-400 shrink-0 font-medium">{r.correct}/{r.answered}</span>
             </div>
           ))}
         </div>
@@ -346,7 +365,7 @@ function LeaderboardList({ leaderboard, stats, profile }) {
 
 function ChaptersList({ chapters }) {
   return (
-    <div className="bg-panel border border-white/5 rounded-2xl p-5 sm:p-6">
+    <div className="glass rounded-3xl p-5 sm:p-6 shadow-card">
       {chapters.length === 0 ? (
         <p className="text-gray-500 text-sm">Chapters you've touched will show up here.</p>
       ) : (
@@ -358,7 +377,7 @@ function ChaptersList({ chapters }) {
                 key={`${c.subject}-${c.chapter}`}
                 className="text-xs bg-panel2 border border-white/10 rounded-full px-3 py-1.5 text-gray-300"
               >
-                {c.chapter} <span className="text-gray-500">({c.correct}/{c.attempted})</span>
+                {c.chapter} <span className="text-teal">({c.correct}/{c.attempted})</span>
               </span>
             ))}
           </div>

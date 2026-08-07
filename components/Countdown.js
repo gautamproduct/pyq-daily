@@ -31,9 +31,9 @@ export default function Countdown({ targetDate, label }) {
           [mins, "m"],
           [secs, "s"],
         ].map(([v, u]) => (
-          <span key={u} className="bg-panel2 rounded px-1.5 sm:px-2 py-1 text-gold font-semibold text-xs sm:text-sm">
+          <span key={u} className="glass rounded px-1.5 sm:px-2 py-1 text-gold font-display font-semibold text-xs sm:text-sm">
             {String(v).padStart(2, "0")}
-            <span className="text-gray-400 font-normal">{u}</span>
+            <span className="text-gray-400 font-normal font-sans">{u}</span>
           </span>
         ))}
       </div>

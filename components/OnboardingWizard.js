@@ -37,7 +37,9 @@ export default function OnboardingWizard({ onComplete, submitting }) {
   }
 
   return (
-    <div className="bg-panel border border-white/5 rounded-2xl p-6 sm:p-8 animate-pop min-h-[380px] flex flex-col">
+    <div className="glass rounded-3xl p-6 sm:p-8 animate-pop min-h-[380px] flex flex-col shadow-card relative overflow-hidden">
+      <div className="absolute -top-20 -right-20 w-56 h-56 bg-accent/20 blur-3xl rounded-full pointer-events-none -z-10" />
+
       <StepDots total={3} current={step} />
 
       {step > 0 && (
@@ -49,11 +51,11 @@ export default function OnboardingWizard({ onComplete, submitting }) {
         </button>
       )}
 
-      <p className="text-xs font-semibold text-accent uppercase tracking-wide mb-1">{meta.eyebrow}</p>
-      <h2 className="text-xl sm:text-2xl font-bold mb-1">{meta.title}</h2>
+      <p className="text-xs font-semibold text-gold uppercase tracking-wide mb-1">{meta.eyebrow}</p>
+      <h2 className="font-display text-xl sm:text-2xl font-bold mb-1">{meta.title}</h2>
       <p className="text-sm text-gray-500 mb-6">{meta.subtitle}</p>
 
-      <div className="flex-1 flex flex-col justify-center">
+      <div className="relative flex-1 flex flex-col justify-center">
         {step === 0 && (
           <form onSubmit={handleNameSubmit}>
             <input
@@ -62,12 +64,12 @@ export default function OnboardingWizard({ onComplete, submitting }) {
               onChange={(e) => setName(e.target.value)}
               maxLength={60}
               placeholder="e.g. Rahul"
-              className="w-full bg-panel2 border border-white/10 rounded-xl px-4 py-4 mb-5 outline-none focus:border-accent text-lg text-center"
+              className="w-full bg-panel2 border border-white/10 rounded-xl px-4 py-4 mb-5 outline-none focus:border-accent focus:shadow-glow transition-shadow text-lg text-center"
             />
             <button
               type="submit"
               disabled={!name.trim()}
-              className="w-full bg-accent hover:bg-accent/90 active:scale-[0.98] disabled:opacity-40 transition rounded-xl py-4 font-semibold text-base"
+              className="btn-primary w-full text-white active:scale-[0.98] disabled:opacity-40 disabled:shadow-none transition rounded-xl py-4 font-display font-bold text-base"
             >
               Continue →
             </button>
@@ -97,12 +99,15 @@ export default function OnboardingWizard({ onComplete, submitting }) {
 }
 
 function BigOption({ label, onClick, selected, accent = "accent" }) {
-  const border = accent === "gold" ? "border-gold bg-gold/15" : "border-accent bg-accent/15";
+  const selectedCls =
+    accent === "gold"
+      ? "border-gold bg-gradient-to-r from-gold/20 to-transparent shadow-goldglow text-white"
+      : "border-accent bg-gradient-to-r from-accent/25 to-transparent shadow-glow text-white";
   return (
     <button
       onClick={onClick}
       className={`text-left px-5 py-4 rounded-xl border transition active:scale-[0.98] text-lg font-medium ${
-        selected ? border : "border-white/10 bg-panel2 hover:border-white/20"
+        selected ? selectedCls : "border-white/10 bg-panel2/60 hover:border-white/25 hover:bg-panel2"
       }`}
     >
       {label}

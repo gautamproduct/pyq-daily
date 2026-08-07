@@ -21,12 +21,20 @@ export default function Countdown321({ onDone }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [i]);
 
+  const isGo = i === steps.length - 1;
   return (
-    <div className="flex flex-col items-center justify-center py-24 select-none">
+    <div className="relative flex flex-col items-center justify-center py-24 select-none">
+      <div
+        className="absolute w-48 h-48 rounded-full blur-3xl -z-10 transition-colors duration-300"
+        style={{ background: isGo ? "rgba(242,201,76,0.35)" : "rgba(139,108,247,0.35)" }}
+      />
       <div
         key={i}
-        className="text-7xl md:text-8xl font-extrabold animate-pop"
-        style={{ color: i === steps.length - 1 ? "#e8c76b" : "#6c5ce7" }}
+        className="font-display text-7xl md:text-8xl font-extrabold animate-pop"
+        style={{
+          color: isGo ? "#f2c94c" : "#a78bfa",
+          textShadow: isGo ? "0 0 40px rgba(242,201,76,0.6)" : "0 0 40px rgba(139,108,247,0.6)",
+        }}
       >
         {steps[i]}
       </div>

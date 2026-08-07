@@ -5,13 +5,13 @@ import { streakMessage } from "../lib/copy";
 export default function StreakFlame({ current }) {
   if (!current || current < 1) return null;
   return (
-    <div className="flex items-center gap-4 bg-gradient-to-r from-gold/15 to-transparent border border-gold/20 rounded-2xl px-5 py-4">
-      <div className="text-4xl animate-flicker">🔥</div>
+    <div className="relative flex items-center gap-4 bg-gradient-to-r from-gold/20 via-gold/5 to-transparent border border-gold/25 shadow-goldglow rounded-2xl px-5 py-4 overflow-hidden">
+      <div className="text-5xl animate-flicker">🔥</div>
       <div>
-        <p className="text-2xl font-extrabold text-gold leading-none">
+        <p className="font-display text-2xl font-extrabold text-gold leading-none">
           {current} day{current === 1 ? "" : "s"}
         </p>
-        <p className="text-xs text-gray-400 mt-1">{streakMessage(current)}</p>
+        <p className="text-xs text-gray-300 mt-1">{streakMessage(current)}</p>
       </div>
     </div>
   );

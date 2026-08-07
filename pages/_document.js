@@ -11,7 +11,7 @@ export default function Document() {
         <meta name="theme-color" content="#0b0f19" />
         <meta name="description" content="3 previous-year JEE/NEET questions a day. Build your streak." />
         <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Sora:wght@600;700;800&display=swap"
           rel="stylesheet"
         />
       </Head>

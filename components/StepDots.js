@@ -5,7 +5,11 @@ export default function StepDots({ total, current }) {
         <div
           key={i}
           className={`h-1.5 rounded-full transition-all duration-300 ${
-            i === current ? "w-6 bg-accent" : i < current ? "w-1.5 bg-accent/50" : "w-1.5 bg-white/10"
+            i === current
+              ? "w-7 bg-gradient-to-r from-accent to-gold shadow-glow"
+              : i < current
+              ? "w-1.5 bg-accent/50"
+              : "w-1.5 bg-white/10"
           }`}
         />
       ))}

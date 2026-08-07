@@ -6,13 +6,13 @@ export default function Tabs({ tabs, defaultTab }) {
 
   return (
     <div>
-      <div className="flex gap-1 bg-panel2 rounded-xl p-1 mb-4">
+      <div className="flex gap-1 glass rounded-xl p-1 mb-4">
         {tabs.map((t) => (
           <button
             key={t.key}
             onClick={() => setActive(t.key)}
-            className={`flex-1 text-sm font-medium rounded-lg py-2 transition ${
-              active === t.key ? "bg-accent text-white" : "text-gray-400 hover:text-gray-200"
+            className={`flex-1 text-sm font-medium rounded-lg py-2.5 transition ${
+              active === t.key ? "btn-primary text-white" : "text-gray-400 hover:text-gray-200"
             }`}
           >
             {t.label}
