@@ -4,9 +4,12 @@
 //
 //   - daily_sets:  MUST be cleared — generate-daily-sets.js skips days that
 //                  already have a row, so old picks would otherwise stick.
-//   - attempts / streaks / players: pre-launch test plays only (a handful of
-//                  rows from manual QA); clearing them gives a real, empty
-//                  leaderboard at launch.
+//   - attempts / streaks / players / events: pre-launch test plays only (QA
+//                  rows); clearing them gives a real, empty leaderboard AND
+//                  clean analytics at launch. `events` matters just as much
+//                  as the rest — leftover test page_view/registered/etc.
+//                  rows would corrupt daily_event_summary and
+//                  player_analytics for the real launch day.
 //
 // Does NOT touch the `questions` bank. Run: node scripts/reset-campaign-data.js
 
@@ -33,6 +36,7 @@ async function main() {
   // keyed on player_id (no id column), the rest on id.
   const tables = [
     { name: "attempts", key: "id" },
+    { name: "events", key: "id" },
     { name: "streaks", key: "player_id" },
     { name: "daily_sets", key: "id" },
     { name: "players", key: "id" },
@@ -42,7 +46,7 @@ async function main() {
     console.log(`cleared ${name}: ${error ? "ERROR " + error.message : "ok"}`);
     if (error) process.exit(1);
   }
-  for (const table of ["attempts", "streaks", "daily_sets", "players", "questions"]) {
+  for (const table of ["attempts", "events", "streaks", "daily_sets", "players", "questions"]) {
     const { count } = await db.from(table).select("id", { count: "exact", head: true });
     console.log(`  ${table}: ${count}`);
   }
