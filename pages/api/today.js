@@ -36,6 +36,8 @@ export default async function handler(req, res) {
 
   let completed = false;
   let player = null;
+  let results = null;
+  let streak = null;
   if (device_id) {
     const { data: p } = await db
       .from("players")
@@ -47,11 +49,42 @@ export default async function handler(req, res) {
     if (player) {
       const { data: attempts } = await db
         .from("attempts")
-        .select("id")
+        .select("question_id, selected_option, is_correct")
         .eq("player_id", player.id)
         .eq("set_date", setDate)
         .in("question_id", dailySet.question_ids);
       completed = (attempts || []).length >= orderedQuestions.length && orderedQuestions.length > 0;
+
+      if (completed) {
+        const attemptById = Object.fromEntries((attempts || []).map((a) => [a.question_id, a]));
+        const { data: fullQuestions } = await db
+          .from("questions")
+          .select("*")
+          .in("id", dailySet.question_ids);
+        const qById = Object.fromEntries((fullQuestions || []).map((q) => [q.id, q]));
+
+        results = dailySet.question_ids.map((id) => {
+          const q = qById[id];
+          const a = attemptById[id];
+          return {
+            question_id: id,
+            question: q.question,
+            chapter: q.chapter,
+            year: q.year,
+            correct_option: q.correct_option,
+            solution: q.solution,
+            selected_option: a?.selected_option || null,
+            is_correct: a?.is_correct || false,
+          };
+        });
+
+        const { data: streakRow } = await db
+          .from("streaks")
+          .select("*")
+          .eq("player_id", player.id)
+          .maybeSingle();
+        streak = streakRow || null;
+      }
     }
   }
 
@@ -60,5 +93,9 @@ export default async function handler(req, res) {
     questions: orderedQuestions,
     completed,
     player,
+    results,
+    score: results ? results.filter((r) => r.is_correct).length : null,
+    total: orderedQuestions.length,
+    streak,
   });
 }

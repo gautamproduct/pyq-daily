@@ -8,12 +8,15 @@ function prevDate(dateStr) {
   return d.toISOString().slice(0, 10);
 }
 
+// Records one answer at a time (called the instant a user taps an option),
+// so the UI can show right/wrong feedback immediately instead of waiting
+// for all 3 questions. Streak updates once the 3rd answer of the day lands.
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
 
-  const { device_id, class: klass, exam, answers } = req.body || {};
-  if (!device_id || !klass || !exam || !Array.isArray(answers) || answers.length === 0) {
-    return res.status(400).json({ error: "Missing device_id, class, exam or answers" });
+  const { device_id, class: klass, exam, question_id, selected_option, time_taken_ms } = req.body || {};
+  if (!device_id || !klass || !exam || !question_id || !selected_option) {
+    return res.status(400).json({ error: "Missing required fields" });
   }
 
   const setDate = todayIST();
@@ -37,46 +40,46 @@ export default async function handler(req, res) {
   } catch (e) {
     return res.status(500).json({ error: e.message });
   }
+  if (!dailySet.question_ids.includes(question_id)) {
+    return res.status(400).json({ error: "Question is not part of today's set" });
+  }
 
-  const { data: questions, error: qErr } = await db
+  const { data: question, error: qErr } = await db
     .from("questions")
     .select("*")
-    .in("id", dailySet.question_ids);
+    .eq("id", question_id)
+    .single();
   if (qErr) return res.status(500).json({ error: qErr.message });
-  const byId = Object.fromEntries((questions || []).map((q) => [q.id, q]));
 
-  const rows = [];
-  for (const a of answers) {
-    const q = byId[a.question_id];
-    if (!q) continue;
-    rows.push({
+  const is_correct = selected_option === question.correct_option;
+
+  const { error: insertErr } = await db.from("attempts").upsert(
+    {
       player_id: player.id,
-      question_id: q.id,
+      question_id,
       class: klass,
       exam,
       set_date: setDate,
-      selected_option: a.selected_option || null,
-      is_correct: a.selected_option === q.correct_option,
-      time_taken_ms: a.time_taken_ms || null,
-    });
-  }
-  if (rows.length === 0) return res.status(400).json({ error: "No valid answers" });
-
-  const { error: insertErr } = await db
-    .from("attempts")
-    .upsert(rows, { onConflict: "player_id,question_id,set_date" });
+      selected_option,
+      is_correct,
+      time_taken_ms: time_taken_ms || null,
+    },
+    { onConflict: "player_id,question_id,set_date" }
+  );
   if (insertErr) return res.status(500).json({ error: insertErr.message });
 
-  // Update streak only once the full daily set is completed.
   const { data: allAttempts } = await db
     .from("attempts")
-    .select("id")
+    .select("question_id, selected_option, is_correct")
     .eq("player_id", player.id)
     .eq("set_date", setDate)
     .in("question_id", dailySet.question_ids);
 
+  const done = (allAttempts || []).length >= dailySet.question_ids.length;
+
   let streak = null;
-  if ((allAttempts || []).length >= dailySet.question_ids.length) {
+  let results = null;
+  if (done) {
     const { data: existingStreak } = await db
       .from("streaks")
       .select("*")
@@ -101,24 +104,38 @@ export default async function handler(req, res) {
       .select("*")
       .single();
     streak = streakRow;
+
+    const { data: allQuestions } = await db
+      .from("questions")
+      .select("*")
+      .in("id", dailySet.question_ids);
+    const qById = Object.fromEntries((allQuestions || []).map((q) => [q.id, q]));
+    const attemptById = Object.fromEntries((allAttempts || []).map((a) => [a.question_id, a]));
+
+    results = dailySet.question_ids.map((id) => {
+      const q = qById[id];
+      const a = attemptById[id];
+      return {
+        question_id: id,
+        question: q.question,
+        chapter: q.chapter,
+        year: q.year,
+        correct_option: q.correct_option,
+        solution: q.solution,
+        selected_option: a?.selected_option || null,
+        is_correct: a?.is_correct || false,
+      };
+    });
   }
 
-  const results = dailySet.question_ids.map((id) => {
-    const q = byId[id];
-    const row = rows.find((r) => r.question_id === id);
-    return {
-      question_id: id,
-      question: q.question,
-      chapter: q.chapter,
-      year: q.year,
-      correct_option: q.correct_option,
-      solution: q.solution,
-      selected_option: row?.selected_option || null,
-      is_correct: row?.is_correct || false,
-    };
+  return res.status(200).json({
+    is_correct,
+    correct_option: question.correct_option,
+    solution: question.solution,
+    done,
+    streak,
+    results,
+    score: results ? results.filter((r) => r.is_correct).length : null,
+    total: dailySet.question_ids.length,
   });
-
-  const score = results.filter((r) => r.is_correct).length;
-
-  return res.status(200).json({ score, total: results.length, results, streak });
 }

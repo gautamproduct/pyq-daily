@@ -23,3 +23,14 @@ body {
   100% { transform: translateY(0); opacity: 1; }
 }
 .animate-fade-up { animation: fade-up 0.35s ease-out; }
+
+@keyframes flicker {
+  0%, 100% { transform: scale(1) rotate(-2deg); }
+  50% { transform: scale(1.08) rotate(2deg); }
+}
+.animate-flicker { animation: flicker 1.8s ease-in-out infinite; display: inline-block; }
+
+@keyframes count-ring {
+  0% { stroke-dashoffset: var(--ring-full); }
+  100% { stroke-dashoffset: var(--ring-offset); }
+}
