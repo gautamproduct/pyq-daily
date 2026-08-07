@@ -11,7 +11,7 @@ export default function Document() {
         <meta name="theme-color" content="#080a14" />
         <meta
           name="description"
-          content="The PYQ Daily Challenge — 3 previous-year JEE/NEET questions every day. Show up daily, build your streak, and climb the leaderboard. Most consistent student tops the board."
+          content="The Daily PYQ Challenge — 3 previous-year JEE/NEET questions every day. Show up daily, build your streak, and climb the leaderboard. Most consistent student tops the board."
         />
 
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
@@ -21,14 +21,14 @@ export default function Document() {
         <meta property="og:type" content="website" />
         <meta property="og:site_name" content="PYQ Daily" />
         <meta property="og:url" content="https://daily-pyq.vercel.app/" />
-        <meta property="og:title" content="The PYQ Daily Challenge — 3 JEE/NEET questions a day" />
+        <meta property="og:title" content="The Daily PYQ Challenge — 3 JEE/NEET questions a day" />
         <meta
           property="og:description"
           content="Show up daily, build a streak, and see who's the most consistent. Free. Join the challenge 👉"
         />
         <meta property="og:image" content="https://daily-pyq.vercel.app/og.svg" />
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="The PYQ Daily Challenge — 3 JEE/NEET questions a day" />
+        <meta name="twitter:title" content="The Daily PYQ Challenge — 3 JEE/NEET questions a day" />
         <meta
           name="twitter:description"
           content="Show up daily, build a streak, and see who's the most consistent. Free. Join the challenge 👉"

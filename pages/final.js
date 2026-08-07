@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import Head from "next/head";
 import { CLASSES, EXAMS, FINAL_LEADERBOARD_DATE, formatShortDate } from "../lib/campaign";
 import { getSavedProfile } from "../lib/device";
 import { safeFetchJson } from "../lib/safe-fetch";
@@ -33,16 +34,19 @@ export default function Final() {
 
   return (
     <div className="min-h-screen px-3 sm:px-4 py-6 sm:py-8 md:py-14">
+      <Head>
+        <title>The Consistency Race — PYQ Daily</title>
+      </Head>
       <div className="max-w-2xl mx-auto">
-        <div className="relative text-center mb-6 sm:mb-8 animate-fade-up">
+        <div className="relative text-center mb-5 sm:mb-6 animate-fade-up">
           <div className="absolute -top-10 left-1/2 -translate-x-1/2 w-64 h-64 bg-gold/20 blur-3xl rounded-full pointer-events-none -z-10" />
           <h1 className="font-display text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight">
             The <span className="text-gradient">Consistency Race</span>
           </h1>
           <p className="text-gray-400 mt-1.5 text-xs sm:text-sm px-2">
-            Live standings — who's showing up every single day. Top spot revealed {revealDate}.
+            Who's showing up daily. Top spot revealed {revealDate}.
           </p>
-          <div className="mt-4 flex justify-center">
+          <div className="mt-3 flex justify-center">
             <a href="/" className="text-sm text-accent hover:underline">
               ← Back to today's questions
             </a>

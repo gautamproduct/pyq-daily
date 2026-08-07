@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import Head from "next/head";
 import Countdown from "../components/Countdown";
 import Countdown321 from "../components/Countdown321";
 import Hero from "../components/Hero";
@@ -194,6 +195,9 @@ export default function Home() {
 
   return (
     <div className="min-h-screen px-3 sm:px-4 py-6 sm:py-8 md:py-14">
+      <Head>
+        <title>The Daily PYQ Challenge — PYQ Daily</title>
+      </Head>
       <div className="max-w-2xl mx-auto">
         {stage !== "hero" && (
           <Header compact={stage === "quiz"} profile={profile} onProfileClick={() => setShowProfile(true)} />

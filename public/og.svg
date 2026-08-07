@@ -25,7 +25,7 @@
 
   <text x="200" y="140" font-family="Sora, Inter, system-ui, sans-serif" font-size="40" font-weight="800" fill="#e9e6ff">PYQ Daily</text>
 
-  <text x="80" y="320" font-family="Sora, Inter, system-ui, sans-serif" font-size="86" font-weight="800" fill="url(#grad)">The PYQ Daily Challenge</text>
+  <text x="80" y="320" font-family="Sora, Inter, system-ui, sans-serif" font-size="86" font-weight="800" fill="url(#grad)">The Daily PYQ Challenge</text>
 
   <text x="80" y="400" font-family="Inter, system-ui, sans-serif" font-size="40" font-weight="600" fill="#c9c6dd">3 previous-year JEE / NEET questions. Every single day.</text>
 
