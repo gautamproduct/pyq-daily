@@ -1,4 +1,5 @@
 import { supabaseAdmin } from "../../lib/supabase";
+import { variantForRequest } from "../../lib/variant";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
@@ -14,11 +15,15 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: "Invalid exam" });
   }
 
+  // Which experiment arm they're on is decided once, here, from the domain
+  // they registered through — never re-derived later.
+  const variant = variantForRequest(req);
+
   const db = supabaseAdmin();
   const { data, error } = await db
     .from("players")
     .upsert(
-      { device_id, name: String(name).trim().slice(0, 60), class: klass, exam },
+      { device_id, name: String(name).trim().slice(0, 60), class: klass, exam, variant },
       { onConflict: "device_id" }
     )
     .select("*")

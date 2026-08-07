@@ -38,7 +38,7 @@ function isInitial(k,s,c){return poolClasses(k).some(cl=>(INITIAL[`${cl}|${s}`]|
 
   const groups = {};
   for (const s of sets) {
-    const g = `${s.class}|${s.exam}`;
+    const g = `${s.class}|${s.exam}|${s.variant}`;
     (groups[g] = groups[g] || []).push(s);
   }
   let problems = 0;

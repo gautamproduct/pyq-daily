@@ -135,7 +135,8 @@ export default function Home() {
   }
 
   async function loadLeaderboard(p) {
-    const data = await safeFetchJson(`/api/leaderboard?class=${p.class}&exam=${p.exam}`);
+    const device_id = getDeviceId();
+    const data = await safeFetchJson(`/api/leaderboard?class=${p.class}&exam=${p.exam}&device_id=${device_id}`);
     if (!data.error) setLeaderboard(data.leaderboard || []);
   }
 

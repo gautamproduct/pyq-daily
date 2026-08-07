@@ -11,9 +11,7 @@ function prevDate(dateStr) {
 // Records one answer at a time. The client never learns is_correct /
 // correct_option / solution for an individual question here — correctness is
 // only revealed once, in the end-of-quiz review (see `results` below, only
-// populated when `done`). That also means the fast path (questions 1 and 2
-// of 3) has nothing to wait on beyond "was this recorded", so the three
-// independent lookups below run concurrently instead of one after another.
+// populated when `done`).
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
 
@@ -29,23 +27,31 @@ export default async function handler(req, res) {
 
   const db = supabaseAdmin();
 
-  let player, dailySet, question;
+  // Player lookup goes first — ensureDailySet needs their variant (3 vs 8
+  // questions/day) to know which daily set to build/fetch. Once we have
+  // that, the daily-set and question lookups are independent and run
+  // concurrently.
+  const { data: player, error: playerErr } = await db
+    .from("players")
+    .select("*")
+    .eq("device_id", device_id)
+    .maybeSingle();
+  if (playerErr) return res.status(500).json({ error: playerErr.message });
+  if (!player) return res.status(400).json({ error: "Unknown player — register first" });
+
+  let dailySet, question;
   try {
-    const [playerRes, dailySetRes, questionRes] = await Promise.all([
-      db.from("players").select("*").eq("device_id", device_id).maybeSingle(),
-      ensureDailySet(setDate, klass, exam),
+    const [dailySetRes, questionRes] = await Promise.all([
+      ensureDailySet(setDate, klass, exam, player.variant),
       db.from("questions").select("correct_option").eq("id", question_id).single(),
     ]);
-    if (playerRes.error) throw playerRes.error;
     if (questionRes.error) throw questionRes.error;
-    player = playerRes.data;
     dailySet = dailySetRes;
     question = questionRes.data;
   } catch (e) {
     return res.status(500).json({ error: e.message });
   }
 
-  if (!player) return res.status(400).json({ error: "Unknown player — register first" });
   if (!dailySet.question_ids.includes(question_id)) {
     return res.status(400).json({ error: "Question is not part of today's set" });
   }
@@ -58,6 +64,7 @@ export default async function handler(req, res) {
       question_id,
       class: klass,
       exam,
+      variant: player.variant,
       set_date: setDate,
       selected_option,
       is_correct,

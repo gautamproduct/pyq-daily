@@ -1,11 +1,12 @@
 #!/usr/bin/env node
 // Pre-generates and saves the daily_sets rows for every day of the
-// campaign (today through CHALLENGE_END_DATE) for every class+exam group,
-// so the question schedule exists as auditable rows in Supabase rather
-// than being created lazily on first request each day.
+// campaign (today through CHALLENGE_END_DATE), for every class+exam+variant
+// group, so the question schedule exists as auditable rows in Supabase
+// rather than being created lazily on first request each day.
 //
-// Mirrors lib/daily-set.js + lib/priority-chapters.js — keep them in sync if
-// the algorithm changes. (This is CommonJS and can't import the ESM libs.)
+// Mirrors lib/daily-set.js + lib/priority-chapters.js + lib/variant.js — keep
+// them in sync if the algorithm changes. (This is CommonJS and can't import
+// the ESM libs.)
 //
 // Usage: npm run generate-daily-sets
 
@@ -41,8 +42,10 @@ const db = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persi
 const CHALLENGE_END_DATE = "2026-08-16";
 const CLASSES = ["11", "12", "dropper"];
 const EXAMS = ["JEE", "NEET"];
+// Mirrors lib/variant.js — keep in sync.
+const VARIANTS = { q3: 3, q8: 8 };
 
-const REQUIRED_SUBJECTS = {
+const SUBJECT_ROTATION = {
   JEE: [
     { slot: "Physics", subjects: ["Physics"] },
     { slot: "Chemistry", subjects: ["Chemistry"] },
@@ -54,6 +57,12 @@ const REQUIRED_SUBJECTS = {
     { slot: "Biology", subjects: ["Botany", "Zoology"] },
   ],
 };
+function buildSlots(exam, count) {
+  const rotation = SUBJECT_ROTATION[exam];
+  const slots = [];
+  for (let i = 0; i < count; i++) slots.push(rotation[i % rotation.length]);
+  return slots;
+}
 
 // Mirrors lib/priority-chapters.js — keep in sync.
 const INITIAL_CHAPTERS = {
@@ -102,6 +111,11 @@ function narrow(candidates, pred) {
   const filtered = candidates.filter(pred);
   return filtered.length > 0 ? filtered : candidates;
 }
+function pickMediumSlotIndices(count, seed) {
+  const mediumCount = Math.max(1, Math.round(count / 3));
+  const order = Array.from({ length: count }, (_, i) => i).sort((a, b) => seededRand(a, seed) - seededRand(b, seed));
+  return new Set(order.slice(0, mediumCount));
+}
 
 function pickOne(pool, subjects, wantDifficulty, klass, usedIds, pickedIds, seed, saltKey) {
   const inSubject = pool.filter((q) => subjects.includes(q.subject) && !pickedIds.has(q.id));
@@ -133,13 +147,16 @@ function datesFrom(start, end) {
   return dates;
 }
 
-async function ensureDailySet(setDate, klass, exam, poolCache, usedCache) {
+async function ensureDailySet(setDate, klass, exam, variant, poolCache, usedCache) {
+  const count = VARIANTS[variant];
+
   const { data: existing } = await db
     .from("daily_sets")
     .select("*")
     .eq("set_date", setDate)
     .eq("class", klass)
     .eq("exam", exam)
+    .eq("variant", variant)
     .maybeSingle();
   if (existing) return { row: existing, created: false };
 
@@ -152,19 +169,19 @@ async function ensureDailySet(setDate, klass, exam, poolCache, usedCache) {
   const pool = poolCache[poolKey];
   if (pool.length === 0) throw new Error(`No questions available for class=${klass} exam=${exam}`);
 
-  const usedKey = `${klass}|${exam}`;
+  const usedKey = `${klass}|${exam}|${variant}`;
   if (!usedCache[usedKey]) usedCache[usedKey] = new Set();
   const usedIds = usedCache[usedKey];
 
-  const slots = REQUIRED_SUBJECTS[exam];
-  const seed = hashSeed(`${setDate}:${klass}:${exam}`);
-  const mediumSlotIndex = Math.abs(seed) % slots.length;
+  const slots = buildSlots(exam, count);
+  const seed = hashSeed(`${setDate}:${klass}:${exam}:${count}`);
+  const mediumIndices = pickMediumSlotIndices(count, seed);
 
   const picked = [];
   const pickedIds = new Set();
   slots.forEach((slot, i) => {
-    const wantDifficulty = i === mediumSlotIndex ? "medium" : "easy";
-    const q = pickOne(pool, slot.subjects, wantDifficulty, klass, usedIds, pickedIds, seed, slot.slot);
+    const wantDifficulty = mediumIndices.has(i) ? "medium" : "easy";
+    const q = pickOne(pool, slot.subjects, wantDifficulty, klass, usedIds, pickedIds, seed, `${slot.slot}-${i}`);
     if (q) {
       picked.push(q);
       pickedIds.add(q.id);
@@ -181,13 +198,16 @@ async function ensureDailySet(setDate, klass, exam, poolCache, usedCache) {
     }
   }
 
-  const questionIds = picked.slice(0, 3).map((q) => q.id);
+  const questionIds = picked.slice(0, count).map((q) => q.id);
   if (questionIds.length === 0) throw new Error(`No questions available for class=${klass} exam=${exam}`);
   questionIds.forEach((id) => usedIds.add(id));
 
   const { data: inserted, error } = await db
     .from("daily_sets")
-    .upsert({ set_date: setDate, class: klass, exam, question_ids: questionIds }, { onConflict: "set_date,class,exam" })
+    .upsert(
+      { set_date: setDate, class: klass, exam, variant, question_ids: questionIds },
+      { onConflict: "set_date,class,exam,variant" }
+    )
     .select("*")
     .single();
   if (error) throw error;
@@ -197,7 +217,10 @@ async function ensureDailySet(setDate, klass, exam, poolCache, usedCache) {
 async function main() {
   const start = todayIST();
   const dates = datesFrom(start, CHALLENGE_END_DATE);
-  console.log(`Generating daily sets for ${dates.length} day(s): ${start} → ${CHALLENGE_END_DATE}`);
+  const variants = Object.keys(VARIANTS);
+  console.log(
+    `Generating daily sets for ${dates.length} day(s) x ${variants.length} variant(s): ${start} → ${CHALLENGE_END_DATE}`
+  );
 
   const poolCache = {};
   const usedCache = {};
@@ -208,12 +231,14 @@ async function main() {
   for (const date of dates) {
     for (const klass of CLASSES) {
       for (const exam of EXAMS) {
-        try {
-          const { created: wasCreated } = await ensureDailySet(date, klass, exam, poolCache, usedCache);
-          if (wasCreated) created += 1;
-          else existed += 1;
-        } catch (e) {
-          failures.push(`${date} ${klass}/${exam}: ${e.message}`);
+        for (const variant of variants) {
+          try {
+            const { created: wasCreated } = await ensureDailySet(date, klass, exam, variant, poolCache, usedCache);
+            if (wasCreated) created += 1;
+            else existed += 1;
+          } catch (e) {
+            failures.push(`${date} ${klass}/${exam}/${variant}: ${e.message}`);
+          }
         }
       }
     }

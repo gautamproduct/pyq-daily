@@ -1,6 +1,7 @@
 import { supabaseAdmin } from "../../lib/supabase";
 import { ensureDailySet } from "../../lib/daily-set";
 import { todayIST, isChallengeOpen } from "../../lib/campaign";
+import { variantForRequest } from "../../lib/variant";
 
 // Builds the results/streak payload for a player's most recently completed
 // day — used both for "you already played today" and for "the challenge
@@ -65,17 +66,16 @@ export default async function handler(req, res) {
   const setDate = todayIST();
   const db = supabaseAdmin();
 
-  const playerPromise = device_id
-    ? db
+  const player = device_id
+    ? await db
         .from("players")
         .select("*")
         .eq("device_id", device_id)
         .maybeSingle()
         .then((r) => r.data || null)
-    : Promise.resolve(null);
+    : null;
 
   if (!isChallengeOpen(setDate)) {
-    const player = await playerPromise;
     const last = player ? await loadLastCompletedDay(db, player, klass, exam) : null;
     return res.status(200).json({
       challengeClosed: true,
@@ -88,9 +88,15 @@ export default async function handler(req, res) {
     });
   }
 
-  let player, dailySet;
+  // A registered player's variant is fixed at signup — use that, not the
+  // current request's host, so revisiting via the other domain never
+  // switches someone mid-campaign. Only a not-yet-registered visitor falls
+  // back to the current host.
+  const variant = player?.variant || variantForRequest(req);
+
+  let dailySet;
   try {
-    [player, dailySet] = await Promise.all([playerPromise, ensureDailySet(setDate, klass, exam)]);
+    dailySet = await ensureDailySet(setDate, klass, exam, variant);
   } catch (e) {
     return res.status(500).json({ error: e.message });
   }
