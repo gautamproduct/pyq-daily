@@ -8,9 +8,12 @@ function prevDate(dateStr) {
   return d.toISOString().slice(0, 10);
 }
 
-// Records one answer at a time (called the instant a user taps an option),
-// so the UI can show right/wrong feedback immediately instead of waiting
-// for all 3 questions. Streak updates once the 3rd answer of the day lands.
+// Records one answer at a time. The client never learns is_correct /
+// correct_option / solution for an individual question here — correctness is
+// only revealed once, in the end-of-quiz review (see `results` below, only
+// populated when `done`). That also means the fast path (questions 1 and 2
+// of 3) has nothing to wait on beyond "was this recorded", so the three
+// independent lookups below run concurrently instead of one after another.
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
 
@@ -26,30 +29,26 @@ export default async function handler(req, res) {
 
   const db = supabaseAdmin();
 
-  const { data: player, error: playerErr } = await db
-    .from("players")
-    .select("*")
-    .eq("device_id", device_id)
-    .maybeSingle();
-  if (playerErr) return res.status(500).json({ error: playerErr.message });
-  if (!player) return res.status(400).json({ error: "Unknown player — register first" });
-
-  let dailySet;
+  let player, dailySet, question;
   try {
-    dailySet = await ensureDailySet(setDate, klass, exam);
+    const [playerRes, dailySetRes, questionRes] = await Promise.all([
+      db.from("players").select("*").eq("device_id", device_id).maybeSingle(),
+      ensureDailySet(setDate, klass, exam),
+      db.from("questions").select("correct_option").eq("id", question_id).single(),
+    ]);
+    if (playerRes.error) throw playerRes.error;
+    if (questionRes.error) throw questionRes.error;
+    player = playerRes.data;
+    dailySet = dailySetRes;
+    question = questionRes.data;
   } catch (e) {
     return res.status(500).json({ error: e.message });
   }
+
+  if (!player) return res.status(400).json({ error: "Unknown player — register first" });
   if (!dailySet.question_ids.includes(question_id)) {
     return res.status(400).json({ error: "Question is not part of today's set" });
   }
-
-  const { data: question, error: qErr } = await db
-    .from("questions")
-    .select("*")
-    .eq("id", question_id)
-    .single();
-  if (qErr) return res.status(500).json({ error: qErr.message });
 
   const is_correct = selected_option === question.correct_option;
 
@@ -77,66 +76,59 @@ export default async function handler(req, res) {
 
   const done = (allAttempts || []).length >= dailySet.question_ids.length;
 
-  let streak = null;
-  let results = null;
-  if (done) {
-    const { data: existingStreak } = await db
-      .from("streaks")
-      .select("*")
-      .eq("player_id", player.id)
-      .maybeSingle();
-
-    let current = 1;
-    let longest = existingStreak?.longest_streak || 0;
-    if (existingStreak?.last_played_date === setDate) {
-      current = existingStreak.current_streak;
-    } else if (existingStreak?.last_played_date === prevDate(setDate)) {
-      current = (existingStreak.current_streak || 0) + 1;
-    }
-    longest = Math.max(longest, current);
-
-    const { data: streakRow } = await db
-      .from("streaks")
-      .upsert(
-        { player_id: player.id, current_streak: current, longest_streak: longest, last_played_date: setDate },
-        { onConflict: "player_id" }
-      )
-      .select("*")
-      .single();
-    streak = streakRow;
-
-    const { data: allQuestions } = await db
-      .from("questions")
-      .select("*")
-      .in("id", dailySet.question_ids);
-    const qById = Object.fromEntries((allQuestions || []).map((q) => [q.id, q]));
-    const attemptById = Object.fromEntries((allAttempts || []).map((a) => [a.question_id, a]));
-
-    results = dailySet.question_ids.map((id) => {
-      const q = qById[id];
-      const a = attemptById[id];
-      return {
-        question_id: id,
-        question: q.question,
-        subject: q.subject,
-        chapter: q.chapter,
-        year: q.year,
-        correct_option: q.correct_option,
-        solution: q.solution,
-        selected_option: a?.selected_option || null,
-        is_correct: a?.is_correct || false,
-      };
-    });
+  if (!done) {
+    // Nothing to reveal yet — just enough for the client to advance.
+    return res.status(200).json({ done: false });
   }
 
+  const [{ data: existingStreak }, { data: allQuestions }] = await Promise.all([
+    db.from("streaks").select("*").eq("player_id", player.id).maybeSingle(),
+    db.from("questions").select("*").in("id", dailySet.question_ids),
+  ]);
+
+  let current = 1;
+  let longest = existingStreak?.longest_streak || 0;
+  if (existingStreak?.last_played_date === setDate) {
+    current = existingStreak.current_streak;
+  } else if (existingStreak?.last_played_date === prevDate(setDate)) {
+    current = (existingStreak.current_streak || 0) + 1;
+  }
+  longest = Math.max(longest, current);
+
+  const { data: streakRow, error: streakErr } = await db
+    .from("streaks")
+    .upsert(
+      { player_id: player.id, current_streak: current, longest_streak: longest, last_played_date: setDate },
+      { onConflict: "player_id" }
+    )
+    .select("*")
+    .single();
+  if (streakErr) return res.status(500).json({ error: streakErr.message });
+
+  const qById = Object.fromEntries((allQuestions || []).map((q) => [q.id, q]));
+  const attemptById = Object.fromEntries((allAttempts || []).map((a) => [a.question_id, a]));
+
+  const results = dailySet.question_ids.map((id) => {
+    const q = qById[id];
+    const a = attemptById[id];
+    return {
+      question_id: id,
+      question: q.question,
+      subject: q.subject,
+      chapter: q.chapter,
+      year: q.year,
+      correct_option: q.correct_option,
+      solution: q.solution,
+      selected_option: a?.selected_option || null,
+      is_correct: a?.is_correct || false,
+    };
+  });
+
   return res.status(200).json({
-    is_correct,
-    correct_option: question.correct_option,
-    solution: question.solution,
-    done,
-    streak,
+    done: true,
+    streak: streakRow,
     results,
-    score: results ? results.filter((r) => r.is_correct).length : null,
+    score: results.filter((r) => r.is_correct).length,
     total: dailySet.question_ids.length,
   });
 }

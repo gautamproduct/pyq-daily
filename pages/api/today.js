@@ -18,13 +18,16 @@ async function loadLastCompletedDay(db, player, klass, exam) {
     .maybeSingle();
   if (!lastAttempt) return null;
 
-  const { data: attempts } = await db
-    .from("attempts")
-    .select("question_id, selected_option, is_correct")
-    .eq("player_id", player.id)
-    .eq("set_date", lastAttempt.set_date)
-    .eq("class", klass)
-    .eq("exam", exam);
+  const [{ data: attempts }, { data: streakRow }] = await Promise.all([
+    db
+      .from("attempts")
+      .select("question_id, selected_option, is_correct")
+      .eq("player_id", player.id)
+      .eq("set_date", lastAttempt.set_date)
+      .eq("class", klass)
+      .eq("exam", exam),
+    db.from("streaks").select("*").eq("player_id", player.id).maybeSingle(),
+  ]);
   if (!attempts || attempts.length === 0) return null;
 
   const questionIds = attempts.map((a) => a.question_id);
@@ -48,8 +51,6 @@ async function loadLastCompletedDay(db, player, klass, exam) {
     };
   });
 
-  const { data: streakRow } = await db.from("streaks").select("*").eq("player_id", player.id).maybeSingle();
-
   return { setDate: lastAttempt.set_date, results, streak: streakRow || null };
 }
 
@@ -64,15 +65,18 @@ export default async function handler(req, res) {
   const setDate = todayIST();
   const db = supabaseAdmin();
 
-  let player = null;
-  if (device_id) {
-    const { data: p } = await db.from("players").select("*").eq("device_id", device_id).maybeSingle();
-    player = p || null;
-  }
+  const playerPromise = device_id
+    ? db
+        .from("players")
+        .select("*")
+        .eq("device_id", device_id)
+        .maybeSingle()
+        .then((r) => r.data || null)
+    : Promise.resolve(null);
 
   if (!isChallengeOpen(setDate)) {
-    let last = null;
-    if (player) last = await loadLastCompletedDay(db, player, klass, exam);
+    const player = await playerPromise;
+    const last = player ? await loadLastCompletedDay(db, player, klass, exam) : null;
     return res.status(200).json({
       challengeClosed: true,
       setDate,
@@ -84,59 +88,63 @@ export default async function handler(req, res) {
     });
   }
 
-  let dailySet;
+  let player, dailySet;
   try {
-    dailySet = await ensureDailySet(setDate, klass, exam);
+    [player, dailySet] = await Promise.all([playerPromise, ensureDailySet(setDate, klass, exam)]);
   } catch (e) {
     return res.status(500).json({ error: e.message });
   }
 
-  const { data: questions, error: qErr } = await db
-    .from("questions")
-    .select("id, subject, chapter, year, question, option_a, option_b, option_c, option_d")
-    .in("id", dailySet.question_ids);
+  const [{ data: questions, error: qErr }, attemptsRes] = await Promise.all([
+    db
+      .from("questions")
+      .select("id, subject, chapter, year, question, option_a, option_b, option_c, option_d")
+      .in("id", dailySet.question_ids),
+    player
+      ? db
+          .from("attempts")
+          .select("question_id, selected_option, is_correct")
+          .eq("player_id", player.id)
+          .eq("set_date", setDate)
+          .in("question_id", dailySet.question_ids)
+      : Promise.resolve({ data: null }),
+  ]);
   if (qErr) return res.status(500).json({ error: qErr.message });
 
   // Preserve the daily_set's order.
   const byId = Object.fromEntries((questions || []).map((q) => [q.id, q]));
   const orderedQuestions = dailySet.question_ids.map((id) => byId[id]).filter(Boolean);
 
-  let completed = false;
+  const attempts = attemptsRes.data;
+  const completed = !!player && (attempts || []).length >= orderedQuestions.length && orderedQuestions.length > 0;
+
   let results = null;
   let streak = null;
 
-  if (player) {
-    const { data: attempts } = await db
-      .from("attempts")
-      .select("question_id, selected_option, is_correct")
-      .eq("player_id", player.id)
-      .eq("set_date", setDate)
-      .in("question_id", dailySet.question_ids);
-    completed = (attempts || []).length >= orderedQuestions.length && orderedQuestions.length > 0;
+  if (completed) {
+    const attemptById = Object.fromEntries((attempts || []).map((a) => [a.question_id, a]));
+    const [{ data: fullQuestions }, { data: streakRow }] = await Promise.all([
+      db.from("questions").select("*").in("id", dailySet.question_ids),
+      db.from("streaks").select("*").eq("player_id", player.id).maybeSingle(),
+    ]);
+    const qById = Object.fromEntries((fullQuestions || []).map((q) => [q.id, q]));
 
-    if (completed) {
-      const attemptById = Object.fromEntries((attempts || []).map((a) => [a.question_id, a]));
-      const { data: fullQuestions } = await db.from("questions").select("*").in("id", dailySet.question_ids);
-      const qById = Object.fromEntries((fullQuestions || []).map((q) => [q.id, q]));
-
-      results = dailySet.question_ids.map((id) => {
-        const q = qById[id];
-        const a = attemptById[id];
-        return {
-          question_id: id,
-          question: q.question,
-          chapter: q.chapter,
-          year: q.year,
-          correct_option: q.correct_option,
-          solution: q.solution,
-          selected_option: a?.selected_option || null,
-          is_correct: a?.is_correct || false,
-        };
-      });
-
-      const { data: streakRow } = await db.from("streaks").select("*").eq("player_id", player.id).maybeSingle();
-      streak = streakRow || null;
-    }
+    results = dailySet.question_ids.map((id) => {
+      const q = qById[id];
+      const a = attemptById[id];
+      return {
+        question_id: id,
+        question: q.question,
+        subject: q.subject,
+        chapter: q.chapter,
+        year: q.year,
+        correct_option: q.correct_option,
+        solution: q.solution,
+        selected_option: a?.selected_option || null,
+        is_correct: a?.is_correct || false,
+      };
+    });
+    streak = streakRow || null;
   }
 
   return res.status(200).json({
