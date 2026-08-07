@@ -1,23 +1,13 @@
-import { useEffect, useState } from "react";
-import { CHALLENGE_END_DATE, FINAL_LEADERBOARD_DATE, formatShortDate } from "../lib/campaign";
-import { safeFetchJson } from "../lib/safe-fetch";
+import { CHALLENGE_END_DATE, formatShortDate } from "../lib/campaign";
 
 const PI_LENS_URL = "https://play.google.com/store/apps/details?id=live.pw.pilens&hl=en_IN";
 
-// Exactly ONE clickable thing on the whole page — the "Attempt Today's PYQ"
-// button. Everything else is plain, non-link-styled text so there's no
-// ambiguity about what to tap; the Pi Lens credit at the bottom is
-// attribution, not a competing action.
+// Cut down to the minimum: badge, headline, one line, one button. Everything
+// else (how-it-works, stats, streak/badge details) was extra reading before
+// the one decision that matters — dropped it; people discover streaks,
+// badges, and the leaderboard naturally once they've actually started.
 export default function Hero({ onStart }) {
   const endLabel = formatShortDate(CHALLENGE_END_DATE);
-  const winnerLabel = formatShortDate(FINAL_LEADERBOARD_DATE);
-  const [stats, setStats] = useState(null);
-
-  useEffect(() => {
-    safeFetchJson("/api/global-stats").then((d) => {
-      if (!d.error) setStats(d);
-    });
-  }, []);
 
   return (
     <div className="relative text-center animate-pop">
@@ -43,54 +33,11 @@ export default function Hero({ onStart }) {
         Attempt Today's PYQ →
       </button>
 
-      <p className="text-xs text-gray-500 mt-3">
-        2 min a day · <JoinedCount stats={stats} /> · top the board by {winnerLabel}
-      </p>
-
-      <HowItWorks />
-      <PageFooter />
-    </div>
-  );
-}
-
-function JoinedCount({ stats }) {
-  const joined = stats?.totalParticipants ?? null;
-  if (joined === null || joined < 5) return <span>be one of the first</span>;
-  return <span>{joined} students already in</span>;
-}
-
-function HowItWorks() {
-  const steps = [
-    { n: "1", t: "Answer 3 daily", d: "One each from your core subjects." },
-    { n: "2", t: "Build your streak", d: "7 days unlocks the True Fighter badge." },
-    { n: "3", t: "Top the board", d: "Consistency wins, not luck." },
-  ];
-  return (
-    <div className="mt-14 pt-8 border-t border-white/5">
-      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">How it works</p>
-      <div className="flex gap-2.5 overflow-x-auto snap-x snap-mandatory -mx-3 px-3 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-3 text-left [&::-webkit-scrollbar]:hidden">
-        {steps.map((s) => (
-          <div key={s.n} className="glass rounded-2xl p-3.5 shrink-0 w-[190px] snap-start sm:w-auto sm:shrink">
-            <p className="text-xs font-bold text-accent mb-1.5">{s.n}</p>
-            <p className="font-semibold text-sm mb-0.5">{s.t}</p>
-            <p className="text-xs text-gray-500 leading-relaxed">{s.d}</p>
-          </div>
-        ))}
+      <div className="mt-10 pt-5 border-t border-white/5 flex items-center justify-center text-xs text-gray-500">
+        <a href={PI_LENS_URL} target="_blank" rel="noopener noreferrer" className="hover:text-gray-300 transition">
+          Powered by PW Pi Lens App →
+        </a>
       </div>
-    </div>
-  );
-}
-
-// Attribution only, not a second call to action — "See who's winning" was
-// removed from here since it competed with "Attempt Today's PYQ" as a
-// second decision on first landing. It's still reachable from the reveal
-// screen once someone's actually played.
-function PageFooter() {
-  return (
-    <div className="mt-8 pt-5 border-t border-white/5 flex items-center justify-center text-xs text-gray-500">
-      <a href={PI_LENS_URL} target="_blank" rel="noopener noreferrer" className="hover:text-gray-300 transition">
-        Powered by PW Pi Lens App →
-      </a>
     </div>
   );
 }
