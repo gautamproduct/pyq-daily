@@ -50,7 +50,7 @@ export default function ScoreReveal({ score, total }) {
           </span>
         </div>
       </div>
-      <div className="text-left min-w-0">
+      <div className="text-left min-w-0 max-w-[104px]">
         <p className="text-2xl leading-none mb-0.5">{emoji}</p>
         <p className="text-gray-200 text-xs font-medium font-display leading-snug">{title}</p>
       </div>
