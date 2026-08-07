@@ -1,6 +1,6 @@
-// The chapter and PYQ-year tags, each in its own highlighted box. Shared by
-// the live quiz and the review screen so they always look identical.
-export default function QuestionMeta({ subject, chapter, year, className = "" }) {
+// The chapter and exam-year tags, each in its own highlighted box. Shared by
+// the live quiz and the solutions list so they always look identical.
+export default function QuestionMeta({ subject, chapter, exam, year, className = "" }) {
   if (!chapter && !year) return null;
   return (
     <div className={`flex flex-wrap items-center gap-2 ${className}`}>
@@ -12,7 +12,7 @@ export default function QuestionMeta({ subject, chapter, year, className = "" })
       )}
       {year && (
         <span className="inline-flex items-center text-xs font-bold text-gold bg-gold/10 border border-gold/25 rounded-lg px-2.5 py-1">
-          PYQ {year}
+          {exam ? `${exam} ${year}` : year}
         </span>
       )}
     </div>

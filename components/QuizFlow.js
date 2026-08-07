@@ -6,7 +6,7 @@ import QuestionMeta from "./QuestionMeta";
 // end-of-quiz review — so there's nothing to wait on: tapping an option
 // locks it, fires the answer off, and advances the instant the server
 // acknowledges (no artificial delay).
-export default function QuizFlow({ questions, onAnswer, onAllDone }) {
+export default function QuizFlow({ questions, exam, onAnswer, onAllDone }) {
   const [index, setIndex] = useState(0);
   const [selected, setSelected] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -49,7 +49,7 @@ export default function QuizFlow({ questions, onAnswer, onAllDone }) {
             Question {index + 1} of {questions.length}
           </span>
         </div>
-        <QuestionMeta subject={q.subject} chapter={q.chapter} year={q.year} className="mb-3" />
+        <QuestionMeta subject={q.subject} chapter={q.chapter} exam={exam} year={q.year} className="mb-3" />
         <div
           className="rich-content text-base md:text-lg font-medium mb-5 leading-relaxed min-h-[3em]"
           dangerouslySetInnerHTML={{ __html: q.question }}

@@ -27,12 +27,12 @@
 
   <text x="80" y="320" font-family="Sora, Inter, system-ui, sans-serif" font-size="86" font-weight="800" fill="url(#grad)">The Daily PYQ Challenge</text>
 
-  <text x="80" y="400" font-family="Inter, system-ui, sans-serif" font-size="40" font-weight="600" fill="#c9c6dd">3 previous-year JEE / NEET questions. Every single day.</text>
+  <text x="80" y="400" font-family="Inter, system-ui, sans-serif" font-size="40" font-weight="600" fill="#c9c6dd">Only 3 previous-year JEE / NEET questions a day.</text>
 
-  <text x="80" y="470" font-family="Inter, system-ui, sans-serif" font-size="34" font-weight="500" fill="#8b88a3">Show up daily · build your streak · top the leaderboard 🏆</text>
+  <text x="80" y="470" font-family="Inter, system-ui, sans-serif" font-size="34" font-weight="500" fill="#8b88a3">Free · on today's leaderboard for your class and exam</text>
 
   <g transform="translate(80,520)">
     <rect width="270" height="64" rx="16" fill="#1c1934" stroke="#8b6cf7" stroke-opacity="0.4"/>
-    <text x="135" y="41" text-anchor="middle" font-family="Sora, Inter, sans-serif" font-size="28" font-weight="700" fill="#a48bff">Join the challenge →</text>
+    <text x="135" y="41" text-anchor="middle" font-family="Sora, Inter, sans-serif" font-size="28" font-weight="700" fill="#a48bff">Attempt today's PYQ →</text>
   </g>
 </svg>
