@@ -39,7 +39,7 @@ if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
 
 const db = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
 
-const CHALLENGE_END_DATE = "2026-08-16";
+const CHALLENGE_END_DATE = "2026-08-20";
 const CLASSES = ["11", "12", "dropper"];
 const EXAMS = ["JEE", "NEET"];
 // Mirrors lib/variant.js — keep in sync.
