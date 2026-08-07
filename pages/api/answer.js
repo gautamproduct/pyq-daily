@@ -58,30 +58,43 @@ export default async function handler(req, res) {
 
   const is_correct = selected_option === question.correct_option;
 
-  const { error: insertErr } = await db.from("attempts").upsert(
-    {
-      player_id: player.id,
-      question_id,
-      class: klass,
-      exam,
-      variant: player.variant,
-      set_date: setDate,
-      selected_option,
-      is_correct,
-      time_taken_ms: time_taken_ms || null,
-    },
-    { onConflict: "player_id,question_id,set_date" }
-  );
+  // The insert and the "how many of today's OTHER questions are already
+  // answered" count don't depend on each other — run them concurrently
+  // instead of counting after the insert completes. A question is only
+  // ever answered once per player per day, so "other question ids" plus
+  // this one gives an accurate done-count without waiting on the write.
+  const otherIds = dailySet.question_ids.filter((id) => id !== question_id);
+  const [{ error: insertErr }, { data: otherAttempts }] = await Promise.all([
+    db.from("attempts").upsert(
+      {
+        player_id: player.id,
+        question_id,
+        class: klass,
+        exam,
+        variant: player.variant,
+        set_date: setDate,
+        selected_option,
+        is_correct,
+        time_taken_ms: time_taken_ms || null,
+      },
+      { onConflict: "player_id,question_id,set_date" }
+    ),
+    otherIds.length > 0
+      ? db
+          .from("attempts")
+          .select("question_id, selected_option, is_correct")
+          .eq("player_id", player.id)
+          .eq("set_date", setDate)
+          .in("question_id", otherIds)
+      : Promise.resolve({ data: [] }),
+  ]);
   if (insertErr) return res.status(500).json({ error: insertErr.message });
 
-  const { data: allAttempts } = await db
-    .from("attempts")
-    .select("question_id, selected_option, is_correct")
-    .eq("player_id", player.id)
-    .eq("set_date", setDate)
-    .in("question_id", dailySet.question_ids);
-
-  const done = (allAttempts || []).length >= dailySet.question_ids.length;
+  const allAttempts = [
+    ...(otherAttempts || []),
+    { question_id, selected_option, is_correct },
+  ];
+  const done = allAttempts.length >= dailySet.question_ids.length;
 
   if (!done) {
     // Nothing to reveal yet — just enough for the client to advance.
