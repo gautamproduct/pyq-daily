@@ -26,14 +26,17 @@ export default function Document() {
           property="og:description"
           content="Show up daily, build a streak, and see who's the most consistent. Free. Join the challenge 👉"
         />
-        <meta property="og:image" content="https://daily-pyq.vercel.app/og.svg" />
+        <meta property="og:image" content="https://daily-pyq.vercel.app/og.png" />
+        <meta property="og:image:type" content="image/png" />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="The Daily PYQ Challenge — 3 JEE/NEET questions a day" />
         <meta
           name="twitter:description"
           content="Show up daily, build a streak, and see who's the most consistent. Free. Join the challenge 👉"
         />
-        <meta name="twitter:image" content="https://daily-pyq.vercel.app/og.svg" />
+        <meta name="twitter:image" content="https://daily-pyq.vercel.app/og.png" />
 
         <link
           href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Sora:wght@600;700;800&display=swap"

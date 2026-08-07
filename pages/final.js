@@ -53,7 +53,7 @@ export default function Final() {
           </div>
         </div>
 
-        <div className="flex gap-2 justify-center mb-6 flex-wrap">
+        <div className="flex gap-2 justify-center mb-2 flex-wrap">
           {CLASSES.map((c) => (
             <button
               key={c.value}
@@ -65,7 +65,8 @@ export default function Final() {
               {c.label}
             </button>
           ))}
-          <span className="w-px bg-white/10 mx-1" />
+        </div>
+        <div className="flex gap-2 justify-center mb-6 flex-wrap">
           {EXAMS.map((ex) => (
             <button
               key={ex.value}

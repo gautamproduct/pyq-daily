@@ -229,7 +229,7 @@ export default function Home() {
           />
         )}
 
-        {stage !== "hero" && (
+        {stage === "reveal" && (
           <div className="text-center mt-8">
             <a href="/final" className="text-xs text-gray-500 hover:text-gold transition">
               View final leaderboard →
@@ -351,34 +351,24 @@ function Reveal({ challengeClosed, results, streak, leaderboard, chapters, profi
         </div>
       )}
 
-      <div className="relative glass rounded-3xl px-5 sm:px-6 pt-4 pb-6 shadow-card overflow-hidden">
+      <div className="relative glass rounded-3xl px-5 sm:px-6 py-4 shadow-card overflow-hidden">
         <div className="absolute -top-16 left-1/2 -translate-x-1/2 w-64 h-64 bg-accent/25 blur-3xl rounded-full pointer-events-none -z-10" />
-        <div className="relative">
+        <div className={`relative flex items-center gap-3 mb-3 ${streak?.current_streak > 0 ? "" : "justify-center"}`}>
           <ScoreReveal score={score} total={results.length} />
-
-          {streak?.current_streak > 0 && (
-            <div className="mb-4">
-              <StreakFlame current={streak.current_streak} />
-            </div>
-          )}
-
-          <button
-            onClick={() => shareLink(shareText(results, streak, profile), siteUrl, "share_clicked")}
-            className="w-full bg-gradient-to-r from-good/20 to-teal/20 hover:from-good/30 hover:to-teal/30 text-good border border-good/30 transition rounded-xl py-3.5 font-semibold text-sm active:scale-[0.98]"
-          >
-            Share your score →
-          </button>
+          <StreakFlame current={streak?.current_streak} />
         </div>
+
+        <button
+          onClick={() => shareLink(shareText(results, streak, profile), siteUrl, "share_clicked")}
+          className="relative w-full bg-gradient-to-r from-good/20 to-teal/20 hover:from-good/30 hover:to-teal/30 text-good border border-good/30 transition rounded-xl py-3 font-semibold text-sm active:scale-[0.98]"
+        >
+          Share your score →
+        </button>
       </div>
 
       <Tabs
         onChange={(key) => track(`tab_viewed_${key}`)}
         tabs={[
-          {
-            key: "solutions",
-            label: "Review",
-            content: <SolutionsList results={results} />,
-          },
           {
             key: "leaderboard",
             label: "Leaderboard",
@@ -398,6 +388,11 @@ function Reveal({ challengeClosed, results, streak, leaderboard, chapters, profi
             ),
           },
           {
+            key: "solutions",
+            label: "Review",
+            content: <SolutionsList results={results} />,
+          },
+          {
             key: "chapters",
             label: "Progress",
             content: <ChaptersList chapters={chapters} />,
@@ -405,9 +400,12 @@ function Reveal({ challengeClosed, results, streak, leaderboard, chapters, profi
         ]}
       />
 
-      <p className="text-center text-xs text-gray-500 px-2">
-        Come back tomorrow to keep your streak alive. Challenge runs through {formatShortDate(CHALLENGE_END_DATE)}.
-      </p>
+      <div className="rounded-2xl bg-gradient-to-r from-accent/15 to-gold/10 border border-accent/20 p-4 text-center">
+        <p className="text-sm font-semibold text-white mb-0.5">Come back tomorrow 👋</p>
+        <p className="text-xs text-gray-400">
+          A fresh set drops every morning. Challenge runs through {formatShortDate(CHALLENGE_END_DATE)}.
+        </p>
+      </div>
     </div>
   );
 }
@@ -426,11 +424,6 @@ function SolutionsList({ results }) {
         {results.map((r, i) => (
           <SolutionRow key={r.question_id} r={r} index={i} />
         ))}
-      </div>
-
-      <div className="mt-4 rounded-2xl bg-gradient-to-r from-accent/15 to-gold/10 border border-accent/20 p-4 text-center">
-        <p className="text-sm font-semibold text-white mb-0.5">Come back tomorrow 👋</p>
-        <p className="text-xs text-gray-400">A fresh set drops every morning. Keep your streak alive.</p>
       </div>
     </div>
   );

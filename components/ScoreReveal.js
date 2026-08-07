@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { scoreMessage } from "../lib/copy";
 
-// The "Lesson Complete" moment — score count-up inside a filling ring, given
-// its own visual beat before the leaderboard/solutions compete for attention.
+// A compact ring + message, sized to sit side-by-side with the streak flame
+// rather than stack above it — the score/streak block was eating so much
+// vertical space it pushed the leaderboard below the fold.
 export default function ScoreReveal({ score, total }) {
   const [shown, setShown] = useState(0);
   const { emoji, title } = scoreMessage(score, total);
@@ -15,42 +16,44 @@ export default function ScoreReveal({ score, total }) {
       i += 1;
       setShown(i);
       if (i >= score) clearInterval(t);
-    }, 220);
+    }, 180);
     return () => clearInterval(t);
   }, [score]);
 
   const pct = total > 0 ? shown / total : 0;
-  const radius = 54;
+  const radius = 30;
   const circumference = 2 * Math.PI * radius;
   const ringColor = score === total ? "#f2c94c" : score === 0 ? "#ff5d7a" : "#8b6cf7";
 
   return (
-    <div className="text-center py-6 animate-pop">
-      <div className="relative w-36 h-36 mx-auto mb-3">
-        <svg viewBox="0 0 120 120" className="w-full h-full -rotate-90">
-          <circle cx="60" cy="60" r={radius} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="8" />
+    <div className="flex items-center gap-3 shrink-0">
+      <div className="relative w-16 h-16 shrink-0">
+        <svg viewBox="0 0 72 72" className="w-full h-full -rotate-90">
+          <circle cx="36" cy="36" r={radius} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="6" />
           <circle
-            cx="60"
-            cy="60"
+            cx="36"
+            cy="36"
             r={radius}
             fill="none"
             stroke={ringColor}
-            strokeWidth="8"
+            strokeWidth="6"
             strokeLinecap="round"
             strokeDasharray={circumference}
             strokeDashoffset={circumference * (1 - pct)}
-            style={{ transition: "stroke-dashoffset 0.5s ease-out", filter: `drop-shadow(0 0 8px ${ringColor}80)` }}
+            style={{ transition: "stroke-dashoffset 0.5s ease-out", filter: `drop-shadow(0 0 6px ${ringColor}80)` }}
           />
         </svg>
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="font-display text-4xl font-extrabold tracking-tight">
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span className="font-display text-base font-extrabold tracking-tight">
             {shown}
-            <span className="text-gray-500 text-2xl">/{total}</span>
+            <span className="text-gray-500 text-xs">/{total}</span>
           </span>
         </div>
       </div>
-      <div className="text-4xl mb-1">{emoji}</div>
-      <p className="text-gray-200 font-medium font-display">{title}</p>
+      <div className="text-left min-w-0">
+        <p className="text-2xl leading-none mb-0.5">{emoji}</p>
+        <p className="text-gray-200 text-xs font-medium font-display leading-snug">{title}</p>
+      </div>
     </div>
   );
 }
