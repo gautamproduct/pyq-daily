@@ -1,6 +1,7 @@
 import { supabaseAdmin } from "../../lib/supabase";
 import { todayIST } from "../../lib/campaign";
 import { variantForRequest } from "../../lib/variant";
+import { siteConfigForHost } from "../../lib/site-config";
 
 // Scoped by variant as well as class+exam — a q8 player's max possible
 // score (8) would otherwise always outrank a q3 player's max (3), which
@@ -9,7 +10,14 @@ import { variantForRequest } from "../../lib/variant";
 export default async function handler(req, res) {
   if (req.method !== "GET") return res.status(405).end();
 
-  const { class: klass, exam, date, device_id } = req.query;
+  // Dedicated single-cohort domains override whatever class/exam the client
+  // sends — never trust the query string for these (same reasoning as
+  // /api/today), so a hand-crafted request can't peek at another cohort's
+  // leaderboard.
+  const fixed = siteConfigForHost(req.headers.host);
+  const klass = fixed?.class || req.query.class;
+  const exam = fixed?.exam || req.query.exam;
+  const { date, device_id } = req.query;
   if (!klass || !exam) return res.status(400).json({ error: "Missing class or exam" });
 
   const setDate = date || todayIST();

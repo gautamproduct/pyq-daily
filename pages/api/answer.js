@@ -1,6 +1,7 @@
 import { supabaseAdmin } from "../../lib/supabase";
 import { ensureDailySet } from "../../lib/daily-set";
 import { todayIST, isChallengeOpen } from "../../lib/campaign";
+import { siteConfigForHost } from "../../lib/site-config";
 
 function prevDate(dateStr) {
   const d = new Date(`${dateStr}T00:00:00Z`);
@@ -15,7 +16,12 @@ function prevDate(dateStr) {
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
 
-  const { device_id, class: klass, exam, question_id, selected_option, time_taken_ms } = req.body || {};
+  const { device_id, question_id, selected_option, time_taken_ms } = req.body || {};
+  // Dedicated single-cohort domains override whatever class/exam the client
+  // sends — never trust the body for these (same reasoning as /api/today).
+  const fixed = siteConfigForHost(req.headers.host);
+  const klass = fixed?.class || req.body?.class;
+  const exam = fixed?.exam || req.body?.exam;
   if (!device_id || !klass || !exam || !question_id || !selected_option) {
     return res.status(400).json({ error: "Missing required fields" });
   }

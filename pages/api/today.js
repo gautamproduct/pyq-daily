@@ -2,6 +2,7 @@ import { supabaseAdmin } from "../../lib/supabase";
 import { ensureDailySet } from "../../lib/daily-set";
 import { todayIST, isChallengeOpen } from "../../lib/campaign";
 import { variantForRequest } from "../../lib/variant";
+import { siteConfigForHost } from "../../lib/site-config";
 
 // Builds the results/streak payload for a player's most recently completed
 // day — used both for "you already played today" and for "the challenge
@@ -58,7 +59,13 @@ async function loadLastCompletedDay(db, player, klass, exam) {
 export default async function handler(req, res) {
   if (req.method !== "GET") return res.status(405).end();
 
-  const { class: klass, exam, device_id } = req.query;
+  // Dedicated single-cohort domains override whatever class/exam the client
+  // sends — never trust the query string for these, so a hand-crafted
+  // request can't pull another cohort's questions/leaderboard.
+  const fixed = siteConfigForHost(req.headers.host);
+  const klass = fixed?.class || req.query.class;
+  const exam = fixed?.exam || req.query.exam;
+  const { device_id } = req.query;
   if (!klass || !exam) {
     return res.status(400).json({ error: "Missing class or exam" });
   }
