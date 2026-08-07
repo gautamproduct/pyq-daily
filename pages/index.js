@@ -9,7 +9,7 @@ import StreakFlame from "../components/StreakFlame";
 import Tabs from "../components/Tabs";
 import ErrorBanner from "../components/ErrorBanner";
 import { burstConfetti } from "../lib/confetti";
-import { CHALLENGE_END_DATE, FINAL_LEADERBOARD_DATE, isChallengeOpen } from "../lib/campaign";
+import { CHALLENGE_END_DATE, FINAL_LEADERBOARD_DATE, isChallengeOpen, formatShortDate } from "../lib/campaign";
 import { getDeviceId, getSavedProfile, saveProfile, track } from "../lib/device";
 import { safeFetchJson } from "../lib/safe-fetch";
 
@@ -199,7 +199,10 @@ function Header({ compact }) {
           </p>
           <div className="mt-4 flex justify-center px-2">
             {open ? (
-              <Countdown targetDate={FINAL_LEADERBOARD_DATE} label="Challenge ends Aug 15 · Final leaderboard in" />
+              <Countdown
+                targetDate={FINAL_LEADERBOARD_DATE}
+                label={`Challenge ends ${formatShortDate(CHALLENGE_END_DATE)} · Final leaderboard in`}
+              />
             ) : (
               <span className="text-sm text-gray-400">
                 Challenge closed. Final leaderboard reveals {FINAL_LEADERBOARD_DATE}.

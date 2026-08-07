@@ -1,4 +1,7 @@
+import { CHALLENGE_END_DATE, formatShortDate } from "../lib/campaign";
+
 export default function Hero({ onStart }) {
+  const endLabel = formatShortDate(CHALLENGE_END_DATE);
   return (
     <div className="relative text-center animate-pop">
       <div className="absolute -top-10 left-1/2 -translate-x-1/2 w-72 h-72 bg-accent/30 blur-3xl rounded-full -z-10" />
@@ -7,7 +10,7 @@ export default function Hero({ onStart }) {
 
       <div className="inline-flex items-center gap-1.5 bg-panel2/80 border border-white/10 rounded-full px-3 py-1 text-xs text-gray-400 mb-6">
         <span className="w-1.5 h-1.5 rounded-full bg-good animate-pulse" />
-        Live daily challenge · ends Aug 15
+        Live daily challenge · ends {endLabel}
       </div>
 
       <h1 className="font-display text-4xl sm:text-6xl font-extrabold tracking-tight mb-3 leading-[1.05]">
@@ -24,7 +27,7 @@ export default function Hero({ onStart }) {
       <div className="flex flex-wrap justify-center gap-2 mb-9">
         <Pill emoji="🔥" text="Build a streak" glow="gold" />
         <Pill emoji="🏆" text="Daily leaderboard" glow="accent" />
-        <Pill emoji="📅" text="Ends Aug 15" glow="teal" />
+        <Pill emoji="📅" text={`Ends ${endLabel}`} glow="teal" />
       </div>
 
       <button

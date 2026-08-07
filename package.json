@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "import-questions": "node scripts/import-questions.js",
-    "import-pw-export": "node scripts/import-pw-export.js"
+    "import-pw-export": "node scripts/import-pw-export.js",
+    "generate-daily-sets": "node scripts/generate-daily-sets.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.4",
