@@ -4,6 +4,10 @@ import { safeFetchJson } from "../lib/safe-fetch";
 
 const PI_LENS_URL = "https://play.google.com/store/apps/details?id=live.pw.pilens&hl=en_IN";
 
+// One focal point, everything else demoted: pill -> headline -> one plain
+// hook line -> one big CTA -> small print. Stats, steps, and the Pi Lens
+// credit all sit below with their own spacing so they read as "more info if
+// you want it," not competing for the same first glance as the button.
 export default function Hero({ onStart }) {
   const endLabel = formatShortDate(CHALLENGE_END_DATE);
   const winnerLabel = formatShortDate(FINAL_LEADERBOARD_DATE);
@@ -17,66 +21,68 @@ export default function Hero({ onStart }) {
 
   return (
     <div className="relative text-center animate-pop">
-      <div className="absolute -top-10 left-1/2 -translate-x-1/2 w-72 h-72 bg-accent/30 blur-3xl rounded-full -z-10" />
-      <div className="absolute top-20 left-4 w-32 h-32 bg-gold/20 blur-3xl rounded-full -z-10 animate-float" />
-      <div className="absolute top-32 right-4 w-32 h-32 bg-teal/20 blur-3xl rounded-full -z-10 animate-float" style={{ animationDelay: "1.5s" }} />
+      <div className="absolute -top-10 left-1/2 -translate-x-1/2 w-72 h-72 bg-accent/25 blur-3xl rounded-full -z-10" />
 
-      <div className="inline-flex items-center gap-1.5 bg-panel2/80 border border-white/10 rounded-full px-3 py-1 text-xs text-gray-300 mb-4">
+      <div className="inline-flex items-center gap-1.5 bg-panel2/80 border border-white/10 rounded-full px-3 py-1 text-xs text-gray-400 mb-5">
         <span className="w-1.5 h-1.5 rounded-full bg-good animate-pulse" />
         Live · ends {endLabel}
       </div>
 
-      <h1 className="font-display text-3xl sm:text-6xl font-extrabold tracking-tight mb-2 leading-[1.1]">
+      <h1 className="font-display text-3xl sm:text-6xl font-extrabold tracking-tight mb-3 leading-[1.1]">
         The Daily PYQ <span className="text-gradient">Challenge</span>
       </h1>
 
-      <p className="text-gray-200 text-sm sm:text-xl font-medium max-w-md mx-auto mb-5 px-2">
-        3 PYQs a day. Build your streak. 🏆 Top the board by {winnerLabel}.
+      <p className="text-gray-400 text-base sm:text-xl max-w-md mx-auto mb-8">
+        3 JEE/NEET PYQs a day. Completely free.
       </p>
-
-      <div className="flex flex-wrap justify-center gap-2 mb-6">
-        <StatsPills stats={stats} />
-      </div>
 
       <button
         onClick={onStart}
-        className="btn-primary animate-glow-pulse text-white active:scale-[0.97] transition rounded-2xl px-9 py-4 font-display font-bold text-base sm:text-lg"
+        className="btn-primary animate-glow-pulse text-white active:scale-[0.97] transition rounded-2xl px-10 py-4 font-display font-bold text-lg sm:text-xl"
       >
         Join the challenge →
       </button>
 
-      <div className="mt-3">
-        <a href="/final" className="text-sm text-gray-400 hover:text-gold transition">
-          👀 See who's winning →
-        </a>
-      </div>
+      <p className="text-xs text-gray-500 mt-3">
+        2 min a day · <JoinedCount stats={stats} /> · 🏆 top the board by {winnerLabel}
+      </p>
 
-      <HowItWorks winnerLabel={winnerLabel} />
+      <a href="/final" className="inline-block text-sm text-gray-500 hover:text-gold transition mt-5">
+        See who's winning →
+      </a>
+
+      <HowItWorks />
       <PoweredBy />
     </div>
   );
 }
 
-function HowItWorks({ winnerLabel }) {
+function JoinedCount({ stats }) {
+  const joined = stats?.totalParticipants ?? null;
+  if (joined === null || joined < 5) return <span>be one of the first</span>;
+  return <span>{joined} students already in</span>;
+}
+
+function HowItWorks() {
   const steps = [
     { n: "1", t: "Answer 3 daily", d: "One each from your core subjects." },
     { n: "2", t: "Build your streak", d: "7 days unlocks the True Fighter badge." },
-    { n: "3", t: "Top the board", d: "By " + winnerLabel + " — consistency wins." },
+    { n: "3", t: "Top the board", d: "Consistency wins, not luck." },
   ];
   return (
-    <div className="flex gap-2.5 overflow-x-auto snap-x snap-mandatory -mx-3 px-3 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-3 mt-8 text-left [&::-webkit-scrollbar]:hidden">
-      {steps.map((s) => (
-        <div
-          key={s.n}
-          className="glass rounded-2xl p-3.5 shrink-0 w-[190px] snap-start sm:w-auto sm:shrink"
-        >
-          <div className="w-6 h-6 rounded-full bg-gradient-to-r from-accent to-accent2 text-white text-xs font-bold flex items-center justify-center mb-2 shadow-glow">
-            {s.n}
+    <div className="mt-14 pt-8 border-t border-white/5">
+      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">How it works</p>
+      <div className="flex gap-2.5 overflow-x-auto snap-x snap-mandatory -mx-3 px-3 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-3 text-left [&::-webkit-scrollbar]:hidden">
+        {steps.map((s) => (
+          <div key={s.n} className="glass rounded-2xl p-3.5 shrink-0 w-[190px] snap-start sm:w-auto sm:shrink">
+            <div className="w-6 h-6 rounded-full bg-gradient-to-r from-accent to-accent2 text-white text-xs font-bold flex items-center justify-center mb-2 shadow-glow">
+              {s.n}
+            </div>
+            <p className="font-semibold text-sm mb-0.5">{s.t}</p>
+            <p className="text-xs text-gray-500 leading-relaxed">{s.d}</p>
           </div>
-          <p className="font-semibold text-sm mb-0.5">{s.t}</p>
-          <p className="text-xs text-gray-500 leading-relaxed">{s.d}</p>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   );
 }
@@ -93,35 +99,5 @@ function PoweredBy() {
         Powered by <span className="text-gray-400 font-medium">PW Pi Lens App</span> →
       </a>
     </div>
-  );
-}
-
-function StatsPills({ stats }) {
-  const joined = stats?.totalParticipants ?? null;
-  const onTrack = stats?.onTrack ?? 0;
-
-  return (
-    <>
-      {joined === null || joined < 5 ? (
-        <Pill emoji="🚀" text="Be one of the first to join" glow="accent" />
-      ) : (
-        <Pill emoji="🔥" text={`${joined} students in the race`} glow="accent" />
-      )}
-      {onTrack >= 1 && <Pill emoji="💪" text={`${onTrack} on a streak`} glow="gold" className="hidden sm:inline-flex" />}
-      <Pill emoji="🏆" text="Live leaderboard" glow="teal" className="hidden sm:inline-flex" />
-    </>
-  );
-}
-
-function Pill({ emoji, text, glow, className = "" }) {
-  const glowMap = {
-    gold: "shadow-goldglow border-gold/20",
-    accent: "shadow-glow border-accent/20",
-    teal: "border-teal/20",
-  };
-  return (
-    <span className={`text-xs font-medium glass rounded-full px-3.5 py-2 text-gray-200 inline-flex items-center ${glowMap[glow] || ""} ${className}`}>
-      {emoji} {text}
-    </span>
   );
 }
