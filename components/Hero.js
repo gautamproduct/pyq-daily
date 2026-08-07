@@ -40,7 +40,7 @@ export default function Hero({ onStart }) {
         onClick={onStart}
         className="btn-primary animate-glow-pulse text-white active:scale-[0.97] transition rounded-2xl px-10 py-4 font-display font-bold text-lg sm:text-xl"
       >
-        Join the challenge →
+        Attempt Today's PYQ →
       </button>
 
       <p className="text-xs text-gray-500 mt-3">
@@ -82,7 +82,7 @@ function HowItWorks() {
 }
 
 // The only two real links on the whole homepage, deliberately grouped and
-// visually quiet so they never compete with "Join the challenge" above.
+// visually quiet so they never compete with "Attempt Today's PYQ" above.
 function PageFooter() {
   return (
     <div className="mt-8 pt-5 border-t border-white/5 flex items-center justify-center gap-3 text-xs text-gray-500">
