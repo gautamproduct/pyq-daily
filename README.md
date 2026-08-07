@@ -1,21 +1,20 @@
 # PYQ Daily
 
-3 previous-year JEE/NEET questions a day, by class + exam. Daily leaderboard
-with solutions, streaks, and a final cumulative leaderboard revealed after
-the challenge ends.
+Only 3 previous-year JEE/NEET questions a day, by class + exam. Today's
+leaderboard for your cohort, with solutions you can expand.
 
 - Onboarding: name + class (11/12/dropper) + exam (JEE/NEET), no login.
 - Each day, the same 3 questions are served to everyone in a class+exam
-  group (`daily_sets`, auto-created on first request of the day).
-- After submitting, see score, correct answers + solutions, today's
-  leaderboard, and the running streak.
-- Challenge runs daily through **Aug 15**; the final leaderboard (ranked by
-  days played, then accuracy, then speed) unlocks **Aug 16** at `/final`.
-- Analytics events (`registered`, `quiz_started`, `quiz_completed`, etc.)
-  logged to the `events` table.
-
-Dates live in `lib/campaign.js` — change `CAMPAIGN_START`,
-`CHALLENGE_END_DATE`, `FINAL_LEADERBOARD_DATE` there if the schedule shifts.
+  group (`daily_sets`, pre-generated via `scripts/generate-daily-sets.js`).
+- After submitting, see your score, today's leaderboard for your cohort,
+  and expandable solutions.
+- Challenge runs daily through `CHALLENGE_END_DATE` in `lib/campaign.js` —
+  that's a server-side gate on question-serving only, never shown as a
+  date/countdown in the UI.
+- Analytics events (`page_view`, `registered`, `quiz_completed`, tab views,
+  `share_clicked`, `profile_updated`) logged to the `events` table. See
+  `supabase/schema.sql` for the `player_analytics` / `player_daily_activity` /
+  `daily_event_summary` views built on top of it.
 
 ## Setup
 
@@ -33,15 +32,32 @@ Once you have the Excel file (columns: `exam`, `class`, `subject`,
 `chapter`, `year`, `question`, `option_a..d`, `correct_option`, `solution`):
 
 ```bash
-npm run import-questions -- ./questions.xlsx
+npm run import-pw-export -- ./questions.xlsx
 ```
 
 Re-run any time to add more questions — it only inserts, never deletes.
-`daily_sets` are picked automatically from unused questions per group each
-day, so no manual scheduling step is needed.
+
+## Maintenance scripts
+
+- `npm run generate-daily-sets` — pre-generates `daily_sets` rows for every
+  day through `CHALLENGE_END_DATE`, for every class+exam group. Skips days
+  that already have a row.
+- `node scripts/verify-daily-sets.js` — read-only QA over the generated
+  schedule: subject balance, difficulty mix, render-safety, no repeats.
+- `node scripts/reset-campaign-data.js` — clears `attempts`, `events`,
+  `streaks`, `daily_sets`, `players` (never touches `questions`). Run this
+  before a real launch to wipe test data, then re-run
+  `generate-daily-sets`.
 
 ## Deploy
 
-- Push to GitHub, import the repo in Vercel.
-- Add `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` as Vercel environment
-  variables (Production + Preview).
+Deployed via the Vercel CLI, **not** a GitHub integration — pushing to the
+GitHub mirror does not trigger a deploy.
+
+```bash
+vercel deploy --prod
+```
+
+Env vars (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`) are set directly on
+the Vercel project (`vercel env add <name> production`) — `.env.local` is
+gitignored and never reaches Vercel on its own.
