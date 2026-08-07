@@ -29,8 +29,10 @@ create table if not exists questions (
   option_d text not null,
   correct_option text not null check (correct_option in ('A', 'B', 'C', 'D')),
   solution text,
+  difficulty text check (difficulty in ('easy', 'medium', 'hard')),
   created_at timestamptz not null default now()
 );
+alter table questions add column if not exists difficulty text check (difficulty in ('easy', 'medium', 'hard'));
 
 -- Which 3 questions are "today's" for a given class+exam group.
 create table if not exists daily_sets (

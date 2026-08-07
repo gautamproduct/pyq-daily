@@ -51,6 +51,27 @@ if (!filePath) {
   process.exit(1);
 }
 
+// ---- HTML entity decoding -------------------------------------------
+// Source cells sometimes carry entity-encoded ampersands ("&amp;") inside
+// LaTeX array/matrix column separators, which katex can't interpret
+// literally as "&". This must run ONLY on the extracted math substring
+// (inside renderOne), never on the whole HTML string — decoding globally
+// turns math comparisons like "x<\pi" into a literal "<" that the tag
+// sanitizer then misreads as the start of an HTML tag, silently eating
+// everything up to the next unrelated ">" in the document.
+const NAMED_ENTITIES = { amp: "&", lt: "<", gt: ">", quot: '"', "#39": "'", apos: "'", nbsp: " " };
+
+function decodeEntities(str) {
+  if (!str) return "";
+  return String(str).replace(/&(#\d+|#x[0-9a-fA-F]+|[a-zA-Z]+);/g, (full, code) => {
+    if (code[0] === "#") {
+      const num = code[1] === "x" || code[1] === "X" ? parseInt(code.slice(2), 16) : parseInt(code.slice(1), 10);
+      return Number.isFinite(num) ? String.fromCodePoint(num) : full;
+    }
+    return NAMED_ENTITIES[code] !== undefined ? NAMED_ENTITIES[code] : full;
+  });
+}
+
 // ---- HTML sanitization -----------------------------------------------
 // Source content is PW's own trusted question bank, not arbitrary user
 // input — but we still allowlist tags/attributes rather than trusting the
@@ -70,7 +91,9 @@ function sanitizeHtml(html) {
       if (!/^https:\/\//i.test(src)) return "";
       const altMatch = attrs.match(/alt\s*=\s*"([^"]*)"/i);
       const alt = altMatch ? altMatch[1].replace(/"/g, "&quot;") : "";
-      return `<img src="${src}" alt="${alt}" loading="lazy" />`;
+      // If the image fails to load (dead CDN link, network hiccup), hide it
+      // rather than showing a broken-image icon in the middle of a question.
+      return `<img src="${src}" alt="${alt}" loading="lazy" onerror="this.style.display='none'" />`;
     }
     return `<${lower}>`;
   });
@@ -86,11 +109,24 @@ function renderMath(html) {
   return out;
 }
 
+// Detects LaTeX commands that never got wrapped in \( \) / \[ \] in the
+// source, so they'd show up as raw "\begin{aligned}\vec{F}=..." text
+// instead of rendered math. A small slice of rows have this data-quality
+// issue upstream — with thousands of clean questions to spare, we skip
+// these rather than risk a fragile auto-wrap heuristic.
+function hasUnrenderedLatex(html) {
+  const outsideKatex = html.replace(/<span class="katex[\s\S]*?<\/span><\/span>/g, "");
+  return /\\(begin|vec|frac|left|right)\{/.test(outsideKatex);
+}
+
 function renderOne(expr, displayMode) {
+  // Decode entities within the math substring only (see note above), then
+  // swap any stray literal "<br>" Mathpix left behind for a LaTeX row break.
+  const cleanExpr = decodeEntities(expr).replace(/<\s*br\s*\/?>/gi, "\\\\");
   try {
-    return katex.renderToString(expr.trim(), { throwOnError: false, displayMode });
+    return katex.renderToString(cleanExpr.trim(), { throwOnError: false, displayMode });
   } catch {
-    return expr;
+    return cleanExpr;
   }
 }
 
@@ -125,6 +161,8 @@ function mapExams(examRaw, subject) {
 }
 
 const OPTION_LETTERS = { 1: "A", 2: "B", 3: "C", 4: "D" };
+// Source data only ever has 1 (easy) or 2 (medium) — no "hard" seen.
+const DIFFICULTY_LEVELS = { 1: "easy", 2: "medium" };
 
 async function main() {
   const workbook = XLSX.readFile(filePath);
@@ -136,6 +174,7 @@ async function main() {
   let skippedMulti = 0;
   let skippedExam = 0;
   let skippedIncomplete = 0;
+  let skippedMalformedLatex = 0;
 
   for (const row of rows) {
     const correctRaw = String(row.correctoptions || "").trim();
@@ -167,7 +206,17 @@ async function main() {
       continue;
     }
 
+    if (
+      hasUnrenderedLatex(question) ||
+      hasUnrenderedLatex(solution || "") ||
+      [option_a, option_b, option_c, option_d].some(hasUnrenderedLatex)
+    ) {
+      skippedMalformedLatex += 1;
+      continue;
+    }
+
     const correct_option = OPTION_LETTERS[correctRaw];
+    const difficulty = DIFFICULTY_LEVELS[String(row.difficulty || "").trim()] || null;
 
     for (const exam of exams) {
       questions.push({
@@ -183,11 +232,14 @@ async function main() {
         option_d,
         correct_option,
         solution: solution || null,
+        difficulty,
       });
     }
   }
 
-  console.log(`\nSkipped: ${skippedMulti} multi-answer, ${skippedExam} non-JEE/NEET exam, ${skippedIncomplete} incomplete/other-class`);
+  console.log(
+    `\nSkipped: ${skippedMulti} multi-answer, ${skippedExam} non-JEE/NEET exam, ${skippedIncomplete} incomplete/other-class, ${skippedMalformedLatex} malformed LaTeX (missing delimiters in source)`
+  );
   console.log(`Prepared ${questions.length} question rows to insert (some duplicated across JEE+NEET when the source exam was blank).`);
 
   if (questions.length === 0) {

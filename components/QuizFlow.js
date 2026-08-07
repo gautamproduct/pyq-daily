@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import StepDots from "./StepDots";
+import QuestionMeta from "./QuestionMeta";
 
 // One question at a time, instant right/wrong feedback on tap — the core
 // Duolingo-style loop. Advances automatically a beat after feedback lands
@@ -47,16 +48,8 @@ export default function QuizFlow({ questions, onAnswer, onAllDone }) {
           <span className="text-xs font-semibold text-white bg-gradient-to-r from-accent to-accent2 rounded-full px-3 py-1.5 shadow-glow">
             Question {index + 1} of {questions.length}
           </span>
-          {q.year && (
-            <span className="text-xs font-semibold text-gold bg-gold/10 border border-gold/20 rounded-full px-2.5 py-1.5">{q.year}</span>
-          )}
         </div>
-        {q.chapter && (
-          <p className="text-xs text-gray-500 mb-2">
-            {q.subject ? `${q.subject} · ` : ""}
-            {q.chapter}
-          </p>
-        )}
+        <QuestionMeta subject={q.subject} chapter={q.chapter} year={q.year} className="mb-3" />
         <div
           className="rich-content text-base md:text-lg font-medium mb-5 leading-relaxed min-h-[3em]"
           dangerouslySetInnerHTML={{ __html: q.question }}
@@ -99,12 +92,16 @@ export default function QuizFlow({ questions, onAnswer, onAllDone }) {
               feedback.is_correct ? "bg-good/10 text-good" : "bg-bad/10 text-bad"
             }`}
           >
-            <p className="font-semibold mb-0.5">{feedback.is_correct ? "Correct! 🎯" : "Not quite."}</p>
-            {feedback.solution && (
+            <p className="font-semibold mb-0.5">
+              {feedback.is_correct ? "Correct! 🎯" : `Not quite — correct answer: ${feedback.correct_option}`}
+            </p>
+            {feedback.solution ? (
               <div
                 className="rich-content text-gray-400 font-normal"
                 dangerouslySetInnerHTML={{ __html: feedback.solution }}
               />
+            ) : (
+              <p className="text-gray-500 font-normal italic">No written solution for this one.</p>
             )}
           </div>
         )}

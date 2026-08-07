@@ -1,0 +1,38 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1200" y2="630" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0b0d1c"/>
+      <stop offset="1" stop-color="#141225"/>
+    </linearGradient>
+    <linearGradient id="mark" x1="80" y1="60" x2="200" y2="180" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8b6cf7"/>
+      <stop offset="1" stop-color="#5b4fe0"/>
+    </linearGradient>
+    <linearGradient id="grad" x1="80" y1="0" x2="900" y2="0" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#a48bff"/>
+      <stop offset="1" stop-color="#f2c94c"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.2" cy="0.2" r="0.8">
+      <stop stop-color="#8b6cf7" stop-opacity="0.25"/>
+      <stop offset="1" stop-color="#8b6cf7" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <rect width="1200" height="630" fill="url(#glow)"/>
+
+  <rect x="80" y="70" width="96" height="96" rx="24" fill="url(#mark)"/>
+  <path d="M132 88c7 13 1 20 6 26 3-3 4-7 4-11 7 7 13 16 13 27 0 15-11 25-25 25s-25-10-25-25c0-9 4-16 10-22-1 9 3 13 6 13-4-11 0-24 11-33z" fill="#fff"/>
+
+  <text x="200" y="140" font-family="Sora, Inter, system-ui, sans-serif" font-size="40" font-weight="800" fill="#e9e6ff">PYQ Daily</text>
+
+  <text x="80" y="320" font-family="Sora, Inter, system-ui, sans-serif" font-size="86" font-weight="800" fill="url(#grad)">The PYQ Daily Challenge</text>
+
+  <text x="80" y="400" font-family="Inter, system-ui, sans-serif" font-size="40" font-weight="600" fill="#c9c6dd">3 previous-year JEE / NEET questions. Every single day.</text>
+
+  <text x="80" y="470" font-family="Inter, system-ui, sans-serif" font-size="34" font-weight="500" fill="#8b88a3">Show up daily · build your streak · top the leaderboard 🏆</text>
+
+  <g transform="translate(80,520)">
+    <rect width="270" height="64" rx="16" fill="#1c1934" stroke="#8b6cf7" stroke-opacity="0.4"/>
+    <text x="135" y="41" text-anchor="middle" font-family="Sora, Inter, sans-serif" font-size="28" font-weight="700" fill="#a48bff">Join the challenge →</text>
+  </g>
+</svg>

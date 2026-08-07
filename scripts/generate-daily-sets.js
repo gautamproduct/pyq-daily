@@ -4,6 +4,9 @@
 // so the question schedule exists as auditable rows in Supabase rather
 // than being created lazily on first request each day.
 //
+// Mirrors lib/daily-set.js + lib/priority-chapters.js — keep them in sync if
+// the algorithm changes. (This is CommonJS and can't import the ESM libs.)
+//
 // Usage: npm run generate-daily-sets
 
 const fs = require("fs");
@@ -35,27 +38,50 @@ if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
 
 const db = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
 
-const CHALLENGE_END_DATE = "2026-08-17";
+const CHALLENGE_END_DATE = "2026-08-16";
 const CLASSES = ["11", "12", "dropper"];
 const EXAMS = ["JEE", "NEET"];
 
-// Mirrors lib/priority-chapters.js — keep in sync if that file changes.
-const PRIORITY_CHAPTERS = {
-  "11|Physics": ["Units and Measurements", "Mathematical Tools and Vectors", "Motion in a Straight Line", "Motion in a Plane", "Laws of Motion", "Work, Energy and Power", "Circular Motion", "Center of Mass and System of Particles", "Rotational Motion", "Gravitation"],
-  "11|Chemistry": ["Some Basic Concepts of Chemistry", "Structure of Atom", "Classification of Elements and Periodicity in Properties", "Chemical Bonding and Molecular Structure", "States of Matter", "Organic Chemistry: Some Basic Principles and Techniques"],
-  "11|Maths": ["Basic Maths", "Sets", "Relations and Functions", "Trigonometric Functions", "Quadratic Equations", "Complex Numbers and Quadratic Equations", "Permutations and Combinations", "Binomial Theorem", "Sequence and Series", "Straight Lines"],
-  "11|Botany": ["The Living World", "Biological Classification", "Plant Kingdom", "Morphology of Flowering Plants", "Anatomy of Flowering Plants", "Cell: The Unit of Life", "Biomolecules", "Cell Cycle and Cell Division"],
-  "11|Zoology": ["Animal Kingdom", "Structural Organisation in Animals (Animal Tissues)"],
-  "12|Physics": ["Electric Charges and Fields", "Electrostatic Potential and Capacitance", "Current Electricity", "Moving Charges and Magnetism", "Magnetism and Matter", "Electromagnetic Induction"],
-  "12|Chemistry": ["The Solid State", "Solutions", "Electrochemistry", "Chemical Kinetics", "General Principles and Processes of Isolation of Elements", "The P-Block Elements (XII)", "The D and F-Block Elements", "Coordination Compounds"],
-  "12|Maths": ["Relations and Functions", "Inverse Trigonometric Functions", "Matrices", "Determinants", "Continuity and Differentiability", "Application of Derivatives"],
-  "12|Botany": ["Sexual Reproduction in Flowering Plants", "Principles of Inheritance and Variation", "Molecular Basis of Inheritance"],
-  "12|Zoology": ["Human Reproduction", "Reproductive Health"],
+const REQUIRED_SUBJECTS = {
+  JEE: [
+    { slot: "Physics", subjects: ["Physics"] },
+    { slot: "Chemistry", subjects: ["Chemistry"] },
+    { slot: "Maths", subjects: ["Maths"] },
+  ],
+  NEET: [
+    { slot: "Physics", subjects: ["Physics"] },
+    { slot: "Chemistry", subjects: ["Chemistry"] },
+    { slot: "Biology", subjects: ["Botany", "Zoology"] },
+  ],
 };
 
+// Mirrors lib/priority-chapters.js — keep in sync.
+const INITIAL_CHAPTERS = {
+  "11|Physics": ["Units and Measurements", "Motion in a Straight Line", "Motion in a Plane"],
+  "11|Chemistry": ["Some Basic Concepts of Chemistry", "Structure of Atom", "Classification of Elements and Periodicity in Properties"],
+  "11|Maths": ["Relations and Functions", "Trigonometric Functions", "Complex Numbers and Quadratic Equations"],
+  "11|Botany": ["The Living World", "Biological Classification", "Plant Kingdom"],
+  "11|Zoology": ["Animal Kingdom", "Structural Organisation in Animals (Animal Tissues)", "Biomolecules"],
+  "12|Physics": ["Electric Charges and Fields", "Electrostatic Potential and Capacitance", "Current Electricity"],
+  "12|Chemistry": ["The Solid State", "Solutions", "Electrochemistry"],
+  "12|Maths": ["Relations and Functions", "Inverse Trigonometric Functions", "Matrices"],
+  "12|Botany": ["Sexual Reproduction in Flowering Plants", "Principles of Inheritance and Variation", "Molecular Basis of Inheritance"],
+  "12|Zoology": ["Human Reproduction", "Reproductive Health", "Human Health and Disease"],
+};
+
+function poolClassesFor(klass) {
+  return klass === "dropper" ? ["11", "12"] : [klass];
+}
 function isPriorityChapter(klass, subject, chapter) {
-  const list = PRIORITY_CHAPTERS[`${klass}|${subject}`];
-  return list ? list.includes(chapter) : false;
+  return poolClassesFor(klass).some((c) => (INITIAL_CHAPTERS[`${c}|${subject}`] || []).includes(chapter));
+}
+function isRenderSafe(q) {
+  const all = [q.question, q.option_a, q.option_b, q.option_c, q.option_d, q.solution || ""].join(" ");
+  if (/<img/i.test(all)) return false;
+  if (/mtable/.test(all)) return false;
+  if (/katex-display/.test(all)) return false;
+  if (/<table/i.test(all)) return false;
+  return true;
 }
 
 function hashSeed(str) {
@@ -69,6 +95,26 @@ function seededRand(id, seed) {
   for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) | 0;
   return Math.abs(h % 100000);
 }
+function seededShuffle(arr, seed) {
+  return [...arr].sort((a, b) => seededRand(a.id, seed) - seededRand(b.id, seed));
+}
+function narrow(candidates, pred) {
+  const filtered = candidates.filter(pred);
+  return filtered.length > 0 ? filtered : candidates;
+}
+
+function pickOne(pool, subjects, wantDifficulty, klass, usedIds, pickedIds, seed, saltKey) {
+  const inSubject = pool.filter((q) => subjects.includes(q.subject) && !pickedIds.has(q.id));
+  if (inSubject.length === 0) return null;
+  // Order: fresh > render-safe > initial-chapter > difficulty (see lib/daily-set.js).
+  let candidates = narrow(inSubject, (q) => !usedIds.has(q.id));
+  candidates = narrow(candidates, isRenderSafe);
+  candidates = narrow(candidates, (q) => isPriorityChapter(klass, q.subject, q.chapter));
+  candidates = narrow(candidates, (q) => q.difficulty === wantDifficulty);
+  return seededShuffle(candidates, hashSeed(`${seed}:${saltKey}`))[0];
+}
+
+const POOL_COLUMNS = "id, class, subject, chapter, difficulty, question, option_a, option_b, option_c, option_d, solution";
 
 function todayIST() {
   const now = new Date();
@@ -97,31 +143,46 @@ async function ensureDailySet(setDate, klass, exam, poolCache, usedCache) {
     .maybeSingle();
   if (existing) return { row: existing, created: false };
 
-  const poolClass = klass === "dropper" ? "12" : klass;
-  const poolKey = `${poolClass}|${exam}`;
+  const poolClasses = poolClassesFor(klass);
+  const poolKey = `${poolClasses.join("+")}|${exam}`;
   if (!poolCache[poolKey]) {
-    const { data: pool } = await db.from("questions").select("id, subject, chapter").eq("class", poolClass).eq("exam", exam);
+    const { data: pool } = await db.from("questions").select(POOL_COLUMNS).in("class", poolClasses).eq("exam", exam);
     poolCache[poolKey] = pool || [];
   }
   const pool = poolCache[poolKey];
+  if (pool.length === 0) throw new Error(`No questions available for class=${klass} exam=${exam}`);
 
   const usedKey = `${klass}|${exam}`;
   if (!usedCache[usedKey]) usedCache[usedKey] = new Set();
   const usedIds = usedCache[usedKey];
 
-  let candidates = pool.filter((q) => !usedIds.has(q.id));
-  if (klass !== "dropper") {
-    const priority = candidates.filter((q) => isPriorityChapter(klass, q.subject, q.chapter));
-    if (priority.length >= 3) candidates = priority;
-  }
-  if (candidates.length < 3) candidates = pool;
-  if (candidates.length === 0) {
-    throw new Error(`No questions available for class=${klass} exam=${exam}`);
+  const slots = REQUIRED_SUBJECTS[exam];
+  const seed = hashSeed(`${setDate}:${klass}:${exam}`);
+  const mediumSlotIndex = Math.abs(seed) % slots.length;
+
+  const picked = [];
+  const pickedIds = new Set();
+  slots.forEach((slot, i) => {
+    const wantDifficulty = i === mediumSlotIndex ? "medium" : "easy";
+    const q = pickOne(pool, slot.subjects, wantDifficulty, klass, usedIds, pickedIds, seed, slot.slot);
+    if (q) {
+      picked.push(q);
+      pickedIds.add(q.id);
+    }
+  });
+
+  if (picked.length < slots.length) {
+    let fallback = pool.filter((q) => !usedIds.has(q.id) && !pickedIds.has(q.id));
+    if (fallback.length < slots.length - picked.length) fallback = pool.filter((q) => !pickedIds.has(q.id));
+    for (const q of seededShuffle(fallback, seed)) {
+      if (picked.length >= slots.length) break;
+      picked.push(q);
+      pickedIds.add(q.id);
+    }
   }
 
-  const seed = hashSeed(`${setDate}:${klass}:${exam}`);
-  const shuffled = [...candidates].sort((a, b) => seededRand(a.id, seed) - seededRand(b.id, seed));
-  const questionIds = shuffled.slice(0, 3).map((q) => q.id);
+  const questionIds = picked.slice(0, 3).map((q) => q.id);
+  if (questionIds.length === 0) throw new Error(`No questions available for class=${klass} exam=${exam}`);
   questionIds.forEach((id) => usedIds.add(id));
 
   const { data: inserted, error } = await db

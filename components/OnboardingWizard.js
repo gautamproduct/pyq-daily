@@ -1,112 +1,80 @@
 import { useState } from "react";
 import { CLASSES, EXAMS } from "../lib/campaign";
-import { ONBOARD_STEPS } from "../lib/copy";
-import StepDots from "./StepDots";
 
-const STEP_KEYS = ["name", "class", "exam"];
-
+// Single screen: tap class, tap exam, type name, go. Three sequential
+// screens caused drop-off — taps are near-zero-friction so they come
+// first, the one thing that needs typing comes last, right before the CTA.
 export default function OnboardingWizard({ onComplete, submitting }) {
-  const [step, setStep] = useState(0);
   const [name, setName] = useState("");
   const [klass, setKlass] = useState(null);
   const [exam, setExam] = useState(null);
 
-  const meta = ONBOARD_STEPS[STEP_KEYS[step]];
+  const canSubmit = name.trim().length > 0 && klass && exam;
 
-  function next() {
-    setStep((s) => Math.min(s + 1, STEP_KEYS.length - 1));
-  }
-  function back() {
-    setStep((s) => Math.max(s - 1, 0));
-  }
-
-  function handleNameSubmit(e) {
+  function handleSubmit(e) {
     e.preventDefault();
-    if (!name.trim()) return;
-    next();
-  }
-
-  function pickClass(v) {
-    setKlass(v);
-    setTimeout(next, 150);
-  }
-
-  function pickExam(v) {
-    setExam(v);
-    setTimeout(() => onComplete({ name: name.trim(), class: klass, exam: v }), 150);
+    if (!canSubmit) return;
+    onComplete({ name: name.trim(), class: klass, exam });
   }
 
   return (
-    <div className="glass rounded-3xl p-6 sm:p-8 animate-pop min-h-[380px] flex flex-col shadow-card relative overflow-hidden">
+    <form
+      onSubmit={handleSubmit}
+      className="glass rounded-3xl p-6 sm:p-8 animate-pop shadow-card relative overflow-hidden"
+    >
       <div className="absolute -top-20 -right-20 w-56 h-56 bg-accent/20 blur-3xl rounded-full pointer-events-none -z-10" />
 
-      <StepDots total={3} current={step} />
+      <h2 className="font-display text-xl sm:text-2xl font-bold mb-1">Let's get you set up</h2>
+      <p className="text-sm text-gray-500 mb-6">Takes 30 seconds. This is a one-time setup.</p>
 
-      {step > 0 && (
-        <button
-          onClick={back}
-          className="text-xs text-gray-500 hover:text-gray-300 mb-3 self-start transition"
-        >
-          ← Back
-        </button>
-      )}
-
-      <p className="text-xs font-semibold text-gold uppercase tracking-wide mb-1">{meta.eyebrow}</p>
-      <h2 className="font-display text-xl sm:text-2xl font-bold mb-1">{meta.title}</h2>
-      <p className="text-sm text-gray-500 mb-6">{meta.subtitle}</p>
-
-      <div className="relative flex-1 flex flex-col justify-center">
-        {step === 0 && (
-          <form onSubmit={handleNameSubmit}>
-            <input
-              autoFocus
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              maxLength={60}
-              placeholder="e.g. Rahul"
-              className="w-full bg-panel2 border border-white/10 rounded-xl px-4 py-4 mb-5 outline-none focus:border-accent focus:shadow-glow transition-shadow text-lg text-center"
-            />
-            <button
-              type="submit"
-              disabled={!name.trim()}
-              className="btn-primary w-full text-white active:scale-[0.98] disabled:opacity-40 disabled:shadow-none transition rounded-xl py-4 font-display font-bold text-base"
-            >
-              Continue →
-            </button>
-          </form>
-        )}
-
-        {step === 1 && (
-          <div className="grid grid-cols-1 gap-3">
-            {CLASSES.map((c) => (
-              <BigOption key={c.value} label={c.label} onClick={() => pickClass(c.value)} selected={klass === c.value} />
-            ))}
-          </div>
-        )}
-
-        {step === 2 && (
-          <div className="grid grid-cols-1 gap-3">
-            {EXAMS.map((ex) => (
-              <BigOption key={ex.value} label={ex.label} onClick={() => pickExam(ex.value)} selected={exam === ex.value} accent="gold" />
-            ))}
-          </div>
-        )}
+      <label className="block text-xs font-semibold text-gold uppercase tracking-wide mb-2">Class</label>
+      <div className="grid grid-cols-3 gap-2 mb-5">
+        {CLASSES.map((c) => (
+          <Chip key={c.value} label={c.label} selected={klass === c.value} onClick={() => setKlass(c.value)} accent="accent" />
+        ))}
       </div>
 
-      {submitting && <p className="text-center text-xs text-gray-500 mt-4">Setting you up…</p>}
-    </div>
+      <label className="block text-xs font-semibold text-gold uppercase tracking-wide mb-2">Exam</label>
+      <div className="grid grid-cols-2 gap-2 mb-5">
+        {EXAMS.map((ex) => (
+          <Chip key={ex.value} label={ex.label} selected={exam === ex.value} onClick={() => setExam(ex.value)} accent="gold" />
+        ))}
+      </div>
+
+      <label className="block text-xs font-semibold text-gold uppercase tracking-wide mb-2">Your name</label>
+      <input
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        maxLength={60}
+        placeholder="e.g. Rahul"
+        className="w-full bg-panel2 border border-white/10 rounded-xl px-4 py-3.5 mb-6 outline-none focus:border-accent focus:shadow-glow transition-shadow text-base"
+      />
+
+      <button
+        type="submit"
+        disabled={!canSubmit || submitting}
+        className="btn-primary w-full text-white active:scale-[0.98] disabled:opacity-40 disabled:shadow-none transition rounded-xl py-4 font-display font-bold text-base"
+      >
+        {submitting ? "Setting you up…" : "Start today's challenge →"}
+      </button>
+
+      <p className="text-center text-xs text-gray-600 mt-3">
+        Class & exam are locked once you start — no switching mid-leaderboard.
+      </p>
+    </form>
   );
 }
 
-function BigOption({ label, onClick, selected, accent = "accent" }) {
+function Chip({ label, selected, onClick, accent }) {
   const selectedCls =
     accent === "gold"
       ? "border-gold bg-gradient-to-r from-gold/20 to-transparent shadow-goldglow text-white"
       : "border-accent bg-gradient-to-r from-accent/25 to-transparent shadow-glow text-white";
   return (
     <button
+      type="button"
       onClick={onClick}
-      className={`text-left px-5 py-4 rounded-xl border transition active:scale-[0.98] text-lg font-medium ${
+      className={`text-center py-3 px-1 rounded-lg border transition active:scale-[0.97] text-sm sm:text-base font-medium ${
         selected ? selectedCls : "border-white/10 bg-panel2/60 hover:border-white/25 hover:bg-panel2"
       }`}
     >

@@ -1,15 +1,15 @@
 import { supabaseAdmin } from "../../lib/supabase";
 import { isFinalLeaderboardLive, CHALLENGE_END_DATE, CAMPAIGN_START } from "../../lib/campaign";
 
+// The consistency race — cumulative standings across the whole campaign.
+// This is LIVE from day one (no lock) so students can watch who's showing up
+// every day. The only thing held back until the reveal date is naming the
+// #1 champion: before then the top spot is a "who wins on <date>?" teaser.
 export default async function handler(req, res) {
   if (req.method !== "GET") return res.status(405).end();
 
   const { class: klass, exam } = req.query;
   if (!klass || !exam) return res.status(400).json({ error: "Missing class or exam" });
-
-  if (!isFinalLeaderboardLive()) {
-    return res.status(200).json({ locked: true });
-  }
 
   const db = supabaseAdmin();
 
@@ -57,13 +57,20 @@ export default async function handler(req, res) {
       longestStreak: longestStreaks[id] || 0,
       timeMs: byPlayer[id].timeMs,
     }))
-    // Rank consistency first (days played), then accuracy, then speed —
-    // rewards discipline over a single lucky day.
+    // Consistency first (days played + streak), then total correct, then
+    // speed — the whole point is rewarding who shows up every day.
     .sort(
       (a, b) =>
-        b.daysPlayed - a.daysPlayed || b.correct - a.correct || a.timeMs - b.timeMs
+        b.daysPlayed - a.daysPlayed ||
+        b.longestStreak - a.longestStreak ||
+        b.correct - a.correct ||
+        a.timeMs - b.timeMs
     )
     .map((r, i) => ({ ...r, rank: i + 1 }));
 
-  return res.status(200).json({ locked: false, leaderboard: rows });
+  return res.status(200).json({
+    locked: false,
+    winnerRevealed: isFinalLeaderboardLive(),
+    leaderboard: rows,
+  });
 }

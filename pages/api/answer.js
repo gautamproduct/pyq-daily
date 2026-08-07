@@ -118,6 +118,7 @@ export default async function handler(req, res) {
       return {
         question_id: id,
         question: q.question,
+        subject: q.subject,
         chapter: q.chapter,
         year: q.year,
         correct_option: q.correct_option,
