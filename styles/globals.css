@@ -34,3 +34,15 @@ body {
   0% { stroke-dashoffset: var(--ring-full); }
   100% { stroke-dashoffset: var(--ring-offset); }
 }
+
+/* Rendered question/option/solution HTML from the question bank */
+.rich-content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  margin: 0.5em 0;
+  background: #fff;
+}
+.rich-content p { margin: 0 0 0.5em; }
+.rich-content p:last-child { margin-bottom: 0; }
+.rich-content .katex { font-size: 1.05em; }

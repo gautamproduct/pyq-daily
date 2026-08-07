@@ -56,7 +56,10 @@ export default function QuizFlow({ questions, onAnswer, onAllDone }) {
             {q.chapter}
           </p>
         )}
-        <p className="text-base md:text-lg font-medium mb-5 leading-relaxed min-h-[3em]">{q.question}</p>
+        <div
+          className="rich-content text-base md:text-lg font-medium mb-5 leading-relaxed min-h-[3em]"
+          dangerouslySetInnerHTML={{ __html: q.question }}
+        />
 
         <div className="grid gap-2.5">
           {["A", "B", "C", "D"].map((opt) => {
@@ -79,7 +82,7 @@ export default function QuizFlow({ questions, onAnswer, onAllDone }) {
                 className={`text-left px-4 py-3.5 rounded-xl border transition active:scale-[0.98] disabled:active:scale-100 ${cls}`}
               >
                 <span className="text-gray-500 mr-2">{opt}.</span>
-                {text}
+                <span className="rich-content inline" dangerouslySetInnerHTML={{ __html: text }} />
                 {feedback && opt === feedback.correct_option && <span className="float-right">✓</span>}
                 {feedback && opt === feedback.selected && opt !== feedback.correct_option && (
                   <span className="float-right">✕</span>
@@ -96,7 +99,12 @@ export default function QuizFlow({ questions, onAnswer, onAllDone }) {
             }`}
           >
             <p className="font-semibold mb-0.5">{feedback.is_correct ? "Correct! 🎯" : "Not quite."}</p>
-            {feedback.solution && <p className="text-gray-400 font-normal">{feedback.solution}</p>}
+            {feedback.solution && (
+              <div
+                className="rich-content text-gray-400 font-normal"
+                dangerouslySetInnerHTML={{ __html: feedback.solution }}
+              />
+            )}
           </div>
         )}
       </div>

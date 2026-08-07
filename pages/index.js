@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import Countdown from "../components/Countdown";
 import Countdown321 from "../components/Countdown321";
+import Hero from "../components/Hero";
 import OnboardingWizard from "../components/OnboardingWizard";
 import QuizFlow from "../components/QuizFlow";
 import ScoreReveal from "../components/ScoreReveal";
@@ -11,7 +12,7 @@ import { CHALLENGE_END_DATE, FINAL_LEADERBOARD_DATE, isChallengeOpen } from "../
 import { getDeviceId, getSavedProfile, saveProfile, track } from "../lib/device";
 
 export default function Home() {
-  const [stage, setStage] = useState("loading"); // loading | onboarding | countdown | quiz | reveal
+  const [stage, setStage] = useState("loading"); // loading | hero | onboarding | countdown | quiz | reveal
   const [profile, setProfile] = useState(null);
   const [questions, setQuestions] = useState([]);
   const [results, setResults] = useState(null);
@@ -28,7 +29,7 @@ export default function Home() {
       setProfile(saved);
       loadToday(saved);
     } else {
-      setStage("onboarding");
+      setStage("hero");
     }
   }, []);
 
@@ -141,9 +142,11 @@ export default function Home() {
   return (
     <div className="min-h-screen px-3 sm:px-4 py-6 sm:py-8 md:py-14">
       <div className="max-w-2xl mx-auto">
-        <Header compact={stage === "quiz"} />
+        {stage !== "hero" && <Header compact={stage === "quiz"} />}
 
         {stage === "loading" && <Loading />}
+
+        {stage === "hero" && <Hero onStart={() => setStage("onboarding")} />}
 
         {stage === "onboarding" && (
           <OnboardingWizard onComplete={handleOnboard} submitting={onboardSubmitting} stats={stats} />
@@ -299,11 +302,13 @@ function SolutionsList({ results }) {
           <p className="text-sm text-gray-400 mb-1">
             Q{i + 1} {r.chapter ? `· ${r.chapter}` : ""} {r.year ? `· ${r.year}` : ""}
           </p>
-          <p className="mb-2">{r.question}</p>
+          <div className="rich-content mb-2" dangerouslySetInnerHTML={{ __html: r.question }} />
           <p className={`text-sm font-semibold ${r.is_correct ? "text-good" : "text-bad"}`}>
             {r.is_correct ? "Correct" : `Your answer: ${r.selected_option || "—"}`} · Correct: {r.correct_option}
           </p>
-          {r.solution && <p className="text-sm text-gray-400 mt-1.5">{r.solution}</p>}
+          {r.solution && (
+            <div className="rich-content text-sm text-gray-400 mt-1.5" dangerouslySetInnerHTML={{ __html: r.solution }} />
+          )}
         </div>
       ))}
     </div>

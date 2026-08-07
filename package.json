@@ -6,10 +6,12 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "import-questions": "node scripts/import-questions.js"
+    "import-questions": "node scripts/import-questions.js",
+    "import-pw-export": "node scripts/import-pw-export.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.4",
+    "katex": "^0.18.1",
     "next": "14.2.35",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
