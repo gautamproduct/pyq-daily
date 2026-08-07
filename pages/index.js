@@ -266,10 +266,16 @@ function Results({ challengeClosed, results, leaderboard, profile }) {
   if (!results) return <Loading />;
 
   const score = results.filter((r) => r.is_correct).length;
+  const total = results.length;
+  const perfect = score === total;
+  const zero = score === 0;
+  const accentClass = perfect ? "text-gold" : zero ? "text-bad" : "text-accent";
+  const glowClass = perfect ? "bg-gold/25" : zero ? "bg-bad/20" : "bg-accent/25";
 
   return (
     <div className="space-y-4 animate-fade-up">
-      <div className="relative glass rounded-3xl p-5 shadow-card text-center">
+      <div className="relative glass rounded-3xl p-6 shadow-card text-center overflow-hidden">
+        <div className={`absolute -top-16 left-1/2 -translate-x-1/2 w-56 h-56 ${glowClass} blur-3xl rounded-full pointer-events-none -z-10`} />
         <button
           onClick={() => shareLink(shareText(results, profile), siteUrl, "share_clicked")}
           aria-label="Share your score"
@@ -277,9 +283,11 @@ function Results({ challengeClosed, results, leaderboard, profile }) {
         >
           <ShareIcon />
         </button>
-        <p className="font-display text-3xl font-extrabold">
-          {score}/{results.length} <span className="text-gray-400 text-lg font-medium">correct</span>
+        <p className="font-display font-extrabold tracking-tight leading-none">
+          <span className={`text-5xl tabular-nums ${accentClass}`}>{score}</span>
+          <span className="text-2xl text-gray-500">/{total}</span>
         </p>
+        <p className="text-sm text-gray-400 font-medium mt-1.5">correct</p>
       </div>
 
       <LeaderboardList leaderboard={leaderboard} profile={profile} />
@@ -290,31 +298,50 @@ function Results({ challengeClosed, results, leaderboard, profile }) {
 }
 
 function LeaderboardList({ leaderboard, profile }) {
+  const myName = profile?.name?.trim().toLowerCase();
   return (
-    <div className="glass rounded-3xl p-5 shadow-card">
-      <h2 className="text-sm font-semibold text-gray-300 mb-3">
-        Today's leaderboard · {profile?.class} · {profile?.exam}
-      </h2>
+    <div className="relative glass rounded-3xl p-5 shadow-card overflow-hidden">
+      <div className="absolute -top-20 -right-10 w-48 h-48 bg-gold/10 blur-3xl rounded-full pointer-events-none -z-10" />
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="font-display text-base font-bold text-white flex items-center gap-1.5">
+          <span className="text-lg">🏆</span> Today's Leaderboard
+        </h2>
+        <span className="text-xs font-semibold text-gray-400 bg-panel2 border border-white/10 rounded-full px-2.5 py-1 shrink-0">
+          {profile?.class} · {profile?.exam}
+        </span>
+      </div>
       {leaderboard.length === 0 ? (
         <p className="text-gray-500 text-sm">No entries yet today.</p>
       ) : (
         <div className="space-y-1">
-          {leaderboard.slice(0, 20).map((r) => (
-            <div
-              key={r.player_id}
-              className={`flex items-center justify-between text-sm py-2 px-2.5 rounded-lg ${
-                r.rank <= 3 ? "bg-gradient-to-r from-gold/10 to-transparent" : ""
-              }`}
-            >
-              <span className="flex items-center gap-2 min-w-0">
-                <span className={`w-6 shrink-0 text-center ${r.rank <= 3 ? "text-gold font-bold" : "text-gray-500"}`}>
-                  {r.rank === 1 ? "🥇" : r.rank === 2 ? "🥈" : r.rank === 3 ? "🥉" : r.rank}
+          {leaderboard.slice(0, 20).map((r) => {
+            const isMe = r.name?.trim().toLowerCase() === myName;
+            return (
+              <div
+                key={r.player_id}
+                className={`flex items-center justify-between text-sm py-2.5 px-3 rounded-xl transition ${
+                  isMe
+                    ? "bg-accent/15 border border-accent/40"
+                    : r.rank <= 3
+                    ? "bg-gradient-to-r from-gold/10 to-transparent"
+                    : ""
+                }`}
+              >
+                <span className="flex items-center gap-2.5 min-w-0">
+                  <span className={`w-6 shrink-0 text-center font-display ${r.rank <= 3 ? "text-gold font-bold text-base" : "text-gray-500 font-semibold"}`}>
+                    {r.rank === 1 ? "🥇" : r.rank === 2 ? "🥈" : r.rank === 3 ? "🥉" : r.rank}
+                  </span>
+                  <span className={`truncate ${isMe ? "text-white font-semibold" : "text-gray-200"}`}>
+                    {r.name}
+                    {isMe && <span className="text-accent text-xs font-normal ml-1.5">(you)</span>}
+                  </span>
                 </span>
-                <span className="truncate">{r.name}</span>
-              </span>
-              <span className="text-gray-400 shrink-0 font-medium">{r.correct}/{r.answered}</span>
-            </div>
-          ))}
+                <span className={`shrink-0 font-bold tabular-nums ${isMe ? "text-accent" : "text-gray-400"}`}>
+                  {r.correct}/{r.answered}
+                </span>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
