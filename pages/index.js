@@ -366,6 +366,10 @@ function LeaderboardList({ leaderboard, profile }) {
 
 function SolutionsList({ results, exam }) {
   const [open, setOpen] = useState(false);
+  // Only one question expanded at a time — lets prev/next arrows just move
+  // this single index instead of juggling independent open states per row.
+  const [openIndex, setOpenIndex] = useState(null);
+
   return (
     <div className="glass rounded-3xl shadow-card overflow-hidden">
       <button
@@ -378,7 +382,17 @@ function SolutionsList({ results, exam }) {
       {open && (
         <div className="px-4 sm:px-5 pb-4 sm:pb-5 space-y-2">
           {results.map((r, i) => (
-            <SolutionRow key={r.question_id} r={r} index={i} exam={exam} />
+            <SolutionRow
+              key={r.question_id}
+              r={r}
+              index={i}
+              total={results.length}
+              exam={exam}
+              isOpen={openIndex === i}
+              onToggle={() => setOpenIndex(openIndex === i ? null : i)}
+              onPrev={() => setOpenIndex(i - 1)}
+              onNext={() => setOpenIndex(i + 1)}
+            />
           ))}
         </div>
       )}
@@ -386,12 +400,11 @@ function SolutionsList({ results, exam }) {
   );
 }
 
-function SolutionRow({ r, index, exam }) {
-  const [open, setOpen] = useState(false);
+function SolutionRow({ r, index, total, exam, isOpen, onToggle, onPrev, onNext }) {
   return (
     <div className="rounded-xl border border-white/8 bg-panel2/50 overflow-hidden">
       <button
-        onClick={() => setOpen((o) => !o)}
+        onClick={onToggle}
         className="w-full flex items-center gap-3 px-3.5 py-3 text-left active:bg-white/5 transition"
       >
         <span
@@ -405,10 +418,10 @@ function SolutionRow({ r, index, exam }) {
           <span className="text-sm font-medium text-gray-200">Question {index + 1}</span>
           <QuestionMeta subject={r.subject} chapter={r.chapter} exam={exam} year={r.year} className="mt-1" />
         </span>
-        <span className={`shrink-0 text-gray-500 text-xs transition-transform ${open ? "rotate-180" : ""}`}>▾</span>
+        <span className={`shrink-0 text-gray-500 text-xs transition-transform ${isOpen ? "rotate-180" : ""}`}>▾</span>
       </button>
 
-      {open && (
+      {isOpen && (
         <div className="px-3.5 pb-4 pt-1 border-t border-white/5">
           <div className="rich-content text-sm mb-2 mt-2" dangerouslySetInnerHTML={{ __html: r.question }} />
           <p className={`text-sm font-semibold ${r.is_correct ? "text-good" : "text-bad"}`}>
@@ -419,6 +432,26 @@ function SolutionRow({ r, index, exam }) {
           ) : (
             <p className="text-sm text-gray-600 mt-1.5 italic">No written solution for this one — just the answer key.</p>
           )}
+
+          <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/5">
+            <button
+              onClick={onPrev}
+              disabled={index === 0}
+              aria-label="Previous question"
+              className="flex items-center gap-1 text-xs font-semibold text-gray-400 disabled:text-gray-700 disabled:cursor-not-allowed hover:text-white transition px-2 py-1.5 -ml-2 rounded-lg active:scale-95"
+            >
+              ← Prev
+            </button>
+            <span className="text-[11px] text-gray-600">{index + 1} / {total}</span>
+            <button
+              onClick={onNext}
+              disabled={index === total - 1}
+              aria-label="Next question"
+              className="flex items-center gap-1 text-xs font-semibold text-gray-400 disabled:text-gray-700 disabled:cursor-not-allowed hover:text-white transition px-2 py-1.5 -mr-2 rounded-lg active:scale-95"
+            >
+              Next →
+            </button>
+          </div>
         </div>
       )}
     </div>
