@@ -33,7 +33,12 @@ function isInitial(k,s,c){return poolClasses(k).some(cl=>(INITIAL[`${cl}|${s}`]|
 (async () => {
   const { data: sets } = await db.from("daily_sets").select("*").order("set_date");
   const ids = [...new Set(sets.flatMap(s => s.question_ids))];
-  const { data: qs } = await db.from("questions").select("*").in("id", ids);
+  let qs = [];
+  for (let i = 0; i < ids.length; i += 150) {
+    const { data, error } = await db.from("questions").select("*").in("id", ids.slice(i, i + 150));
+    if (error) { console.error("fetch error:", error.message); process.exit(1); }
+    qs = qs.concat(data || []);
+  }
   const byId = Object.fromEntries(qs.map(q => [q.id, q]));
 
   const groups = {};

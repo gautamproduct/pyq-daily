@@ -223,7 +223,22 @@ async function main() {
   );
 
   const poolCache = {};
+  // Pre-seed usedCache from EVERY existing daily_sets row, not just what
+  // this run creates — otherwise an incremental run (extending the
+  // campaign, or regenerating a handful of cleared slots) starts blind to
+  // what earlier runs already picked and can reintroduce repeats into days
+  // it never even touched this time. (lib/daily-set.js's live ensureDailySet
+  // already does this correctly by querying the DB fresh every call; this
+  // script's whole-run cache needed the same seeding.)
   const usedCache = {};
+  {
+    const { data: existingSets } = await db.from("daily_sets").select("class,exam,variant,question_ids");
+    for (const row of existingSets || []) {
+      const key = `${row.class}|${row.exam}|${row.variant}`;
+      if (!usedCache[key]) usedCache[key] = new Set();
+      for (const id of row.question_ids || []) usedCache[key].add(id);
+    }
+  }
   let created = 0;
   let existed = 0;
   const failures = [];
