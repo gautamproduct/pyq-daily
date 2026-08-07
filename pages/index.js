@@ -27,6 +27,7 @@ export default function Home() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    track("page_view");
     const saved = getSavedProfile();
     if (saved) {
       setProfile(saved);
@@ -280,6 +281,7 @@ function Reveal({ challengeClosed, results, streak, leaderboard, chapters, profi
       </div>
 
       <Tabs
+        onChange={(key) => track(`tab_viewed_${key}`)}
         tabs={[
           {
             key: "solutions",
