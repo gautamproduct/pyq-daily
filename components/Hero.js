@@ -4,10 +4,10 @@ import { safeFetchJson } from "../lib/safe-fetch";
 
 const PI_LENS_URL = "https://play.google.com/store/apps/details?id=live.pw.pilens&hl=en_IN";
 
-// One focal point, everything else demoted: pill -> headline -> one plain
-// hook line -> one big CTA -> small print. Stats, steps, and the Pi Lens
-// credit all sit below with their own spacing so they read as "more info if
-// you want it," not competing for the same first glance as the button.
+// Exactly ONE clickable thing above the fold — the "Join" button. Everything
+// else near it is plain, non-link-styled text so there's no ambiguity about
+// what to tap. "See who's winning" and the Pi Lens credit are real links,
+// but pushed to a quiet footer row, away from the primary decision.
 export default function Hero({ onStart }) {
   const endLabel = formatShortDate(CHALLENGE_END_DATE);
   const winnerLabel = formatShortDate(FINAL_LEADERBOARD_DATE);
@@ -44,15 +44,11 @@ export default function Hero({ onStart }) {
       </button>
 
       <p className="text-xs text-gray-500 mt-3">
-        2 min a day · <JoinedCount stats={stats} /> · 🏆 top the board by {winnerLabel}
+        2 min a day · <JoinedCount stats={stats} /> · top the board by {winnerLabel}
       </p>
 
-      <a href="/final" className="inline-block text-sm text-gray-500 hover:text-gold transition mt-5">
-        See who's winning →
-      </a>
-
       <HowItWorks />
-      <PoweredBy />
+      <PageFooter />
     </div>
   );
 }
@@ -75,9 +71,7 @@ function HowItWorks() {
       <div className="flex gap-2.5 overflow-x-auto snap-x snap-mandatory -mx-3 px-3 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-3 text-left [&::-webkit-scrollbar]:hidden">
         {steps.map((s) => (
           <div key={s.n} className="glass rounded-2xl p-3.5 shrink-0 w-[190px] snap-start sm:w-auto sm:shrink">
-            <div className="w-6 h-6 rounded-full bg-gradient-to-r from-accent to-accent2 text-white text-xs font-bold flex items-center justify-center mb-2 shadow-glow">
-              {s.n}
-            </div>
+            <p className="text-xs font-bold text-accent mb-1.5">{s.n}</p>
             <p className="font-semibold text-sm mb-0.5">{s.t}</p>
             <p className="text-xs text-gray-500 leading-relaxed">{s.d}</p>
           </div>
@@ -87,16 +81,17 @@ function HowItWorks() {
   );
 }
 
-function PoweredBy() {
+// The only two real links on the whole homepage, deliberately grouped and
+// visually quiet so they never compete with "Join the challenge" above.
+function PageFooter() {
   return (
-    <div className="mt-8 pt-5 border-t border-white/5">
-      <a
-        href={PI_LENS_URL}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="text-xs text-gray-500 hover:text-gray-300 transition"
-      >
-        Powered by <span className="text-gray-400 font-medium">PW Pi Lens App</span> →
+    <div className="mt-8 pt-5 border-t border-white/5 flex items-center justify-center gap-3 text-xs text-gray-500">
+      <a href="/final" className="hover:text-gold transition">
+        See who's winning →
+      </a>
+      <span className="text-gray-700">·</span>
+      <a href={PI_LENS_URL} target="_blank" rel="noopener noreferrer" className="hover:text-gray-300 transition">
+        Powered by PW Pi Lens App →
       </a>
     </div>
   );
