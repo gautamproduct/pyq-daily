@@ -4,10 +4,10 @@ import { safeFetchJson } from "../lib/safe-fetch";
 
 const PI_LENS_URL = "https://play.google.com/store/apps/details?id=live.pw.pilens&hl=en_IN";
 
-// Exactly ONE clickable thing above the fold — the "Join" button. Everything
-// else near it is plain, non-link-styled text so there's no ambiguity about
-// what to tap. "See who's winning" and the Pi Lens credit are real links,
-// but pushed to a quiet footer row, away from the primary decision.
+// Exactly ONE clickable thing on the whole page — the "Attempt Today's PYQ"
+// button. Everything else is plain, non-link-styled text so there's no
+// ambiguity about what to tap; the Pi Lens credit at the bottom is
+// attribution, not a competing action.
 export default function Hero({ onStart }) {
   const endLabel = formatShortDate(CHALLENGE_END_DATE);
   const winnerLabel = formatShortDate(FINAL_LEADERBOARD_DATE);
@@ -81,15 +81,13 @@ function HowItWorks() {
   );
 }
 
-// The only two real links on the whole homepage, deliberately grouped and
-// visually quiet so they never compete with "Attempt Today's PYQ" above.
+// Attribution only, not a second call to action — "See who's winning" was
+// removed from here since it competed with "Attempt Today's PYQ" as a
+// second decision on first landing. It's still reachable from the reveal
+// screen once someone's actually played.
 function PageFooter() {
   return (
-    <div className="mt-8 pt-5 border-t border-white/5 flex items-center justify-center gap-3 text-xs text-gray-500">
-      <a href="/final" className="hover:text-gold transition">
-        See who's winning →
-      </a>
-      <span className="text-gray-700">·</span>
+    <div className="mt-8 pt-5 border-t border-white/5 flex items-center justify-center text-xs text-gray-500">
       <a href={PI_LENS_URL} target="_blank" rel="noopener noreferrer" className="hover:text-gray-300 transition">
         Powered by PW Pi Lens App →
       </a>
