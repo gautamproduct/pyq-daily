@@ -160,6 +160,15 @@ async function ensureDailySet(setDate, klass, exam, variant, poolCache, usedCach
     .maybeSingle();
   if (existing) return { row: existing, created: false };
 
+  // q8 shares its first 3 questions with q3 for the same day — see
+  // lib/daily-set.js for the full rationale. Callers already process q3
+  // before q8 (variants loop order), so q3's row exists by now.
+  let prefixIds = [];
+  if (variant === "q8") {
+    const q3Result = await ensureDailySet(setDate, klass, exam, "q3", poolCache, usedCache);
+    prefixIds = q3Result.row.question_ids.slice(0, 3);
+  }
+
   const poolClasses = poolClassesFor(klass);
   const poolKey = `${poolClasses.join("+")}|${exam}`;
   if (!poolCache[poolKey]) {
@@ -179,7 +188,18 @@ async function ensureDailySet(setDate, klass, exam, variant, poolCache, usedCach
 
   const picked = [];
   const pickedIds = new Set();
+
+  const byId = new Map(pool.map((q) => [q.id, q]));
+  prefixIds.forEach((id) => {
+    const q = byId.get(id);
+    if (q) {
+      picked.push(q);
+      pickedIds.add(id);
+    }
+  });
+
   slots.forEach((slot, i) => {
+    if (i < picked.length) return; // already filled from the prefix
     const wantDifficulty = mediumIndices.has(i) ? "medium" : "easy";
     const q = pickOne(pool, slot.subjects, wantDifficulty, klass, usedIds, pickedIds, seed, `${slot.slot}-${i}`);
     if (q) {

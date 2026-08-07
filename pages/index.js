@@ -9,10 +9,12 @@ import QuestionMeta from "../components/QuestionMeta";
 import { burstConfetti } from "../lib/confetti";
 import { getDeviceId, getSavedProfile, saveProfile, track } from "../lib/device";
 import { safeFetchJson } from "../lib/safe-fetch";
+import { siteConfigForHost, fixedLabel } from "../lib/site-config";
 
 export default function Home() {
   const [stage, setStage] = useState("loading"); // loading | hero | onboarding | quiz | reveal
   const [profile, setProfile] = useState(null);
+  const [fixed, setFixed] = useState(null); // { class, exam, variant } on a dedicated single-cohort domain
   const [questions, setQuestions] = useState([]);
   const [results, setResults] = useState(null);
   const [leaderboard, setLeaderboard] = useState([]);
@@ -25,6 +27,7 @@ export default function Home() {
 
   useEffect(() => {
     track("page_view");
+    setFixed(siteConfigForHost(window.location.hostname));
     const saved = getSavedProfile();
     if (saved) {
       setProfile(saved);
@@ -147,16 +150,18 @@ export default function Home() {
       </Head>
       <div className="max-w-2xl w-full mx-auto">
         {stage !== "hero" && (
-          <Header profile={profile} onProfileClick={() => setShowProfile(true)} />
+          <Header profile={profile} onProfileClick={() => setShowProfile(true)} fixed={fixed} />
         )}
 
         <ErrorBanner message={error} onDismiss={() => setError(null)} />
 
         {stage === "loading" && <Loading />}
 
-        {stage === "hero" && <Hero onStart={() => setStage("onboarding")} />}
+        {stage === "hero" && <Hero onStart={() => setStage("onboarding")} fixed={fixed} />}
 
-        {stage === "onboarding" && <OnboardingWizard onComplete={handleOnboard} submitting={onboardSubmitting} />}
+        {stage === "onboarding" && (
+          <OnboardingWizard onComplete={handleOnboard} submitting={onboardSubmitting} fixed={fixed} />
+        )}
 
         {stage === "quiz" && (
           <QuizFlow questions={questions} exam={profile?.exam} onAnswer={handleAnswer} onAllDone={handleAllDone} />
@@ -182,13 +187,14 @@ export default function Home() {
           onSave={handleProfileSave}
           saving={profileSaving}
           error={profileError}
+          fixed={fixed}
         />
       )}
     </div>
   );
 }
 
-function Header({ profile, onProfileClick }) {
+function Header({ profile, onProfileClick, fixed }) {
   const initial = profile?.name?.trim()?.[0]?.toUpperCase() || "🙂";
   return (
     <div className="relative text-center animate-fade-up mb-6 sm:mb-8">
@@ -209,6 +215,11 @@ function Header({ profile, onProfileClick }) {
       <h1 className="font-display font-extrabold tracking-tight text-2xl sm:text-3xl md:text-4xl">
         PYQ <span className="text-gradient">Daily</span>
       </h1>
+      {fixed && (
+        <span className="inline-flex items-center mt-2 bg-gold/10 border border-gold/25 rounded-full px-3 py-1 text-xs font-semibold text-gold">
+          {fixedLabel(fixed)}
+        </span>
+      )}
     </div>
   );
 }

@@ -1,15 +1,16 @@
 import { useState } from "react";
 import { CLASSES, EXAMS } from "../lib/campaign";
+import { fixedLabel } from "../lib/site-config";
 
-export default function ProfileModal({ profile, onClose, onSave, saving, error }) {
+export default function ProfileModal({ profile, onClose, onSave, saving, error, fixed }) {
   const [name, setName] = useState(profile?.name || "");
   const [klass, setKlass] = useState(profile?.class || null);
   const [exam, setExam] = useState(profile?.exam || null);
 
   function handleSubmit(e) {
     e.preventDefault();
-    if (!name.trim() || !klass || !exam) return;
-    onSave({ name: name.trim(), class: klass, exam });
+    if (!name.trim() || (!fixed && (!klass || !exam))) return;
+    onSave(fixed ? { name: name.trim() } : { name: name.trim(), class: klass, exam });
   }
 
   return (
@@ -25,7 +26,11 @@ export default function ProfileModal({ profile, onClose, onSave, saving, error }
             ✕
           </button>
         </div>
-        <p className="text-sm text-gray-500 mb-6">Changing class/exam switches which leaderboard and questions you see.</p>
+        <p className="text-sm text-gray-500 mb-6">
+          {fixed
+            ? `You're on the ${fixedLabel(fixed)} challenge — that's locked on this site.`
+            : "Changing class/exam switches which leaderboard and questions you see."}
+        </p>
 
         {error && <p className="text-sm text-bad bg-bad/10 border border-bad/25 rounded-lg px-3 py-2 mb-4">{error}</p>}
 
@@ -37,23 +42,27 @@ export default function ProfileModal({ profile, onClose, onSave, saving, error }
           className="w-full bg-panel2 border border-white/10 rounded-xl px-4 py-3 mb-5 outline-none focus:border-accent text-base"
         />
 
-        <label className="block text-xs font-semibold text-gold uppercase tracking-wide mb-2">Class</label>
-        <div className="grid grid-cols-3 gap-2 mb-5">
-          {CLASSES.map((c) => (
-            <Chip key={c.value} label={c.label} selected={klass === c.value} onClick={() => setKlass(c.value)} accent="accent" />
-          ))}
-        </div>
+        {!fixed && (
+          <>
+            <label className="block text-xs font-semibold text-gold uppercase tracking-wide mb-2">Class</label>
+            <div className="grid grid-cols-3 gap-2 mb-5">
+              {CLASSES.map((c) => (
+                <Chip key={c.value} label={c.label} selected={klass === c.value} onClick={() => setKlass(c.value)} accent="accent" />
+              ))}
+            </div>
 
-        <label className="block text-xs font-semibold text-gold uppercase tracking-wide mb-2">Exam</label>
-        <div className="grid grid-cols-2 gap-2 mb-6">
-          {EXAMS.map((ex) => (
-            <Chip key={ex.value} label={ex.label} selected={exam === ex.value} onClick={() => setExam(ex.value)} accent="gold" />
-          ))}
-        </div>
+            <label className="block text-xs font-semibold text-gold uppercase tracking-wide mb-2">Exam</label>
+            <div className="grid grid-cols-2 gap-2 mb-6">
+              {EXAMS.map((ex) => (
+                <Chip key={ex.value} label={ex.label} selected={exam === ex.value} onClick={() => setExam(ex.value)} accent="gold" />
+              ))}
+            </div>
+          </>
+        )}
 
         <button
           type="submit"
-          disabled={saving || !name.trim() || !klass || !exam}
+          disabled={saving || !name.trim() || (!fixed && (!klass || !exam))}
           className="btn-primary w-full text-white active:scale-[0.98] disabled:opacity-40 transition rounded-xl py-3.5 font-display font-bold"
         >
           {saving ? "Saving…" : "Save changes"}
